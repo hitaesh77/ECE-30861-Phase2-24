@@ -5,7 +5,8 @@ dependencies = [
     "click>=8.0.0",
     "requests>=2.31.0",
     "pytest>=7.0.0",
-    "coverage>=7.3.0"
+    "coverage>=7.3.0",
+    "transformers>=4.56.2"
 ]
 
 [build-system]
