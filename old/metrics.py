@@ -109,16 +109,18 @@ def ramp_up_time(hf_url: str, api_key: str) -> float:
         float: Score between 0.0 (useless) and 1.0 (extremely helpful), or ERROR_VALUE on failure.
     """
     
+    start_time = time.time()
+
     # Step 0: Extract model_id from full URL
     try:
         parsed = urlparse(hf_url) #parsing the url using urlparse from urllib.parse
         path_parts = parsed.path.strip("/").split("/") #splititing up url to get huggingface Key
         if len(path_parts) == 0: #if no path parts, return error
-            return ERROR_VALUE
+            return ERROR_VALUE, 0.0
         model_id = "/".join(path_parts)  # handles cases like "username/modelname"
     except Exception as e: #exception handling and error message
         print(f"Error parsing Hugging Face URL: {e}")
-        return ERROR_VALUE
+        return ERROR_VALUE, 0.0
 
     # Step 1: Fetch model card
     url = f"https://huggingface.co/api/models/{model_id}" #
@@ -129,10 +131,10 @@ def ramp_up_time(hf_url: str, api_key: str) -> float:
         card_text = data.get("cardData", {}).get("content", "") #parsing neccessary information from json
         
         if not card_text.strip(): #if not card text
-            return ERROR_VALUE #return error value
+            return ERROR_VALUE, 0.0 #return error value
     except Exception as e: #exception handling and error message
         print(f"Error fetching model card: {e}")
-        return ERROR_VALUE
+        return ERROR_VALUE, 0.0
 
     # Step 2: Prepare prompt for grading LLM
     prompt = f"""
@@ -159,10 +161,10 @@ Model card content:
         score_text = response["choices"][0]["message"]["content"].strip() #response is the dict provided by openai, of choices choose the first one, grab the message -> content that is returned and strip extra whitespace
         score = float(score_text) #convert score to float
         score = max(0.0, min(1.0, score))  # clamp to [0.0, 1.0] in the case where the LLM returns a value outside this range
-        return score
+        return score, (time.time() - start_time) * 1000
     except Exception as e:
         print(f"Error grading model card: {e}")
-        return ERROR_VALUE
+        return ERROR_VALUE, 0.0
 
 def correctness():
     return 1
