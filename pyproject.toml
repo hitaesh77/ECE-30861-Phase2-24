@@ -1,14 +1,96 @@
-[project]
-name = "llmgrader"
-version = "0.1"
-dependencies = [
-    "click>=8.0.0",
-    "requests>=2.31.0",
-    "pytest>=7.0.0",
-    "coverage>=7.3.0",
-    "transformers>=4.56.2"
-]
-
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "llmgrader"
+version = "0.1"
+
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+
+authors= [
+    {name = "Santa Singh", github = "Echo145"},
+    {name = "John Gewax", github = "dragyen"},
+    {name = "Oraefo Onwuta", github = "oonwuta"},
+    {name = "Michael Huang", github = "shxrkss"}
+]
+
+
+
+dependencies = [
+    # Could use the following alternate versions as well I think, commented alongside originals
+
+    "click>=8.0.0",
+    # "click>=8.1.7",
+
+    "requests>=2.31.0",
+
+    # "pytest>=7.0.0", # Moving to dev dependencies
+    # "coverage>=7.3.0", # Moving to dev dependencies
+
+    "transformers>=4.56.2",
+
+    # We imported torch
+    "torch>=2.3.0",
+
+    "openai>=0.27.8,<1.0.0",
+
+
+]
+
+[project.optional-dependencies]
+# We can "pip install -e .[dev] to install these
+
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "coverage>=7.6.0",
+    "flake8>=7.1.0",
+    "isort>=5.13.2",
+    "mypy>=1.10.0",
+    "types-requests>=2.32.0.20240903",
+
+    "ruff>=0.6.0", # May be useful for us
+
+
+]
+
+[project.scripts]
+llmgrader = "run:cli"
+
+# [project.urls] #Some ambiguity on how to integrate this part
+# Autograder = ""
+
+[tool.setuptools]
+py-modules = ["run", "modules"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --maxfail=1 --disable-warnings --cov=. --cov-report=term"
+
+[tool.coverage.run]
+omit = ["tests/*]
+branch = true
+source = ["."]
+
+[tool.isort]
+line_length = 100
+profile = "black"
+
+[tool.mypy]
+python_version = "3.11"
+strict_optional = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[tool.flake8]
+extend-ignore = ["E203","W503"]
+max-line-length = 100
+
+# [build-system]
+# requires = ["setuptools>=61.0"]
+# build-backend = "setuptools.build_meta"
