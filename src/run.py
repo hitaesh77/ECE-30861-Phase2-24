@@ -75,11 +75,9 @@ def classify_url(raw: str) -> tuple[UrlCategory, Provider, Dict[str, str]]:
     return UrlCategory.OTHER, Provider.OTHER, {"url": s}
 
 
-
-@click.group(context_settings=dict(help_option_names=["-h", "--help"]), invoke_without_command=True)
-@click.argument('urls_file', required=False)
+@click.group(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.pass_context
-def cli(ctx, urls_file):
+def cli(ctx):
     """
     LLM Grader CLI
 
@@ -89,10 +87,11 @@ def cli(ctx, urls_file):
       python run.py FILE      # Grade URLs from file (or '-' for stdin)
     """
     if ctx.invoked_subcommand is None:
-        if urls_file is None:
+        if not ctx.args:
             click.echo(ctx.get_help())
             ctx.exit(1)
-        # Run the urls command by default
+        # treat the first leftover token as a filename
+        urls_file = ctx.args[0]
         ctx.invoke(urls_command, urls_file=urls_file)
 
 

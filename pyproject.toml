@@ -10,13 +10,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 
-authors= [
-    {name = "Santa Singh", github = "Echo145", email = "singh934@purdue.edu"},
-    {name = "John Gewax", github = "dragyen", email = "jgewax@purdue.edu"},
-    {name = "Oraefo Onwuta", github = "oonwuta", email = "oonwuta@purdue.edu"},
-    {name = "Michael Huang", github = "shxrkss", email = "huan1846@purdue.edu"}
-]
-
 
 
 dependencies = [
@@ -71,7 +64,7 @@ testpaths = ["tests"]
 addopts = "-q --maxfail=1 --disable-warnings --cov=. --cov-report=term"
 
 [tool.coverage.run]
-omit = ["tests/*]
+omit = ["tests/*"]
 branch = true
 source = ["."]
 

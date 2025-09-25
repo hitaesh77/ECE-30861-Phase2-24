@@ -1,2 +1,6 @@
 # Logs
 log.txt
+
+# Package managers
+llmgrader.egg-info/
+
