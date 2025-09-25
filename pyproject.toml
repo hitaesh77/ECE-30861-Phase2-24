@@ -35,7 +35,7 @@ dependencies = [
     # We imported torch
     "torch>=2.3.0",
 
-    "openai>=0.27.8,<1.0.0",
+    # "openai>=0.27.8,<1.0.0",
 
 
 ]
@@ -94,3 +94,8 @@ max-line-length = 100
 # [build-system]
 # requires = ["setuptools>=61.0"]
 # build-backend = "setuptools.build_meta"
+
+# Some commands to know for current version 1.0
+# python - m pip install -e .
+# python -m pip install -e .[dev]
+# python run.py install
