@@ -6,6 +6,9 @@ import time
 import requests
 import openai
 from urllib.parse import urlparse
+from run import UrlCategory, Provider
+import logging
+from typing import Dict, Tuple
 
 ERROR_VALUE = -1.0
 
@@ -304,40 +307,64 @@ Repository content:
         print(f"Error grading documentation: {e}")
         return ERROR_VALUE
 
+
 # run tasks
-def run_cpu_metrics():
-    """Run CPU metrics in a process/thread pool."""
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = {
-            "bus_factor": executor.submit(bus_factor),
-            "size": executor.submit(size),
-            "ramp_up_time": executor.submit(ramp_up_time),
-            "correctness": executor.submit(correctness),
-            "license": executor.submit(license),
-            "netscore": executor.submit(netscore)
-        }
-        return {name: f.result() for name, f in futures.items()}
+async def run_metrics(category: UrlCategory, provider: Provider, ids: Dict[str, str], metric_scores: Dict) -> Dict[str, float]:
+    """Run all relevant metrics based on URL classification."""
+    tasks = []
+    task_names = []
 
-async def run_api_metrics():
-    """Run async metrics concurrently."""
-    tasks = {
-        "performance_claims": asyncio.create_task(performance_claims()),
-        "responsive_maintainer": asyncio.create_task(responsive_maintainer()),
-        "code_quality": asyncio.create_task(code_quality()),
-        "dataset_qualtiy": asyncio.create_task(dataset_quality()),
-        "dataset_code_score": asyncio.create_task(dataset_code_score())
-    }
-    return {name: await task for name, task in tasks.items()}
+    # Common metrics for all types
+    tasks.extend([
+        responsive_maintainer(),
+        code_quality()
+    ])
+    task_names.extend(['responsive_maintainer', 'code_quality'])
 
-async def run_all_metrics():
-    # Run CPU (executor) + API (async) concurrently
-    loop = asyncio.get_running_loop()
-    cpu_future = loop.run_in_executor(None, run_cpu_metrics)
-    api_future = asyncio.create_task(run_api_metrics())
+    # Add category-specific metrics
+    if category == UrlCategory.MODEL:
+        tasks.extend([
+            performance_claims(),
+            bus_factor(ids['url']),
+            size(),
+            ramp_up_time(),
+            license()
+        ])
+        task_names.extend([
+            'performance_claims',
+            'bus_factor',
+            'size',
+            'ramp_up_time',
+            'license'
+        ])
 
-    cpu_results, api_results = await asyncio.gather(cpu_future, api_future)
-    return {**cpu_results, **api_results}
+    elif category == UrlCategory.DATASET:
+        tasks.extend([
+            dataset_quality(),
+            dataset_code_score()
+        ])
+        task_names.extend(['dataset_quality', 'dataset_code_score'])
 
-if __name__ == "__main__":
-    results = asyncio.run(run_all_metrics())
-    print("All metric results:", results)
+    elif category == UrlCategory.CODE:
+        tasks.extend([
+            code_quality(),
+            license()
+        ])
+        task_names.extend(['code_quality', 'license'])
+
+    # Wait for all tasks to complete
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Store results in metric_scores dictionary
+    for name, result in zip(task_names, results):
+        if isinstance(result, Exception):
+            logging.error(f"Error in metric {name}: {result}")
+            metric_scores[name] = ERROR_VALUE
+            metric_scores[f"{name}_latency"] = 0.0
+        else:
+            # All metrics now return (score, latency)
+            score, latency = result
+            metric_scores[name] = score
+            metric_scores[f"{name}_latency"] = latency
+
+    return metric_scores
