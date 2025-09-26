@@ -88,7 +88,7 @@ class DefaultGroup(click.Group):
         return super().parse_args(ctx, args)
 
 
-@click.group(cls=DefaultGroup, context_settings=dict(help_option_names=["-h", "--help"]), invoke_without_command=True)
+@click.group(cls=DefaultGroup, context_settings=dict(help_option_names=["-h", "--help"]), invoke_without_command=True, default_cmd_name="_urls")
 @click.pass_context
 def cli(ctx):
     """
@@ -146,6 +146,10 @@ def urls_command(urls_file: str):
     lines = [ln.strip() for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()]
     source = str(p)
     click.echo(f"Read {len(lines)} URL(s) from {source}. (grading stub)")
+    
+    for line in lines:
+        category, provider, ids = classify_url(line)
+        click.echo(f"URL: {line}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
 
 
 if __name__ == "__main__":
