@@ -3,7 +3,7 @@ import time
 
 ERROR_VALUE = -1.0  # global fallback value
 
-def compute_license_score(payload : dict) -> tuple:
+def compute(payload : dict) -> tuple:
     """
     Compute a license score for a Hugging Face model.
     
