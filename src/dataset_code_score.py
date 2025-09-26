@@ -23,7 +23,7 @@ def dataset_code_score(payload: dict, api_key: str) -> tuple:
         model_id = (payload.get("url")).replace("https://huggingface.co/", "").strip("/") #removing the huggingface part of the link to get the model id
     except Exception as e:
         print(f"Error parsing Hugging Face link: {e}") #exception if huggingface is wrong
-        return ERROR_VALUE, 0.0
+        return ERROR_VALUE, (time.time() - start_time) * 1000
 
     # --- Step 2: Fetch model card & datasets ---
     try:
@@ -36,7 +36,7 @@ def dataset_code_score(payload: dict, api_key: str) -> tuple:
         datasets = data.get("datasets", [])
     except Exception as e:
         print(f"Error fetching model info: {e}")
-        return ERROR_VALUE, 0.0
+        return ERROR_VALUE, (time.time() - start_time) * 1000
 
     # Handle missing dataset
     dataset_text = "\n".join(datasets) if datasets else "NO DATASET PROVIDED" #if no datasets provided, return no dataset provided
@@ -81,7 +81,7 @@ def dataset_code_score(payload: dict, api_key: str) -> tuple:
 """
 
     if not combined_text.strip(): #if no text at all, return error
-        return ERROR_VALUE, 0.0
+        return ERROR_VALUE, (time.time() - start_time) * 1000
 
     # --- Step 5: Prompt LLM for grading ---
     prompt = f"""
@@ -115,4 +115,4 @@ Repository content:
         return max(0.0, min(1.0, score)), (time.time() - start_time) * 1000  # clamp to [0,1]
     except Exception as e:
         print(f"Error grading documentation: {e}")
-        return ERROR_VALUE, 0.0
+        return ERROR_VALUE, (time.time() - start_time) * 1000

@@ -20,7 +20,7 @@ def bus_factor(payload: dict) -> tuple:
         model.eval()
     except Exception as e:
         #print(f"[Error] Could not load model: {e}") //log file will print to stdout
-        return ERROR_VALUE, 0.0  # return error value and 0 ms latency
+        return ERROR_VALUE, (time.time() - start_time) * 1000  # return error value and 0 ms latency
 
     # Default prompts if none provided
     if eval_prompts is None: #tehnically eval prompts will always be none however fucnitonality exists in case spesific eval prompts would like to be used
