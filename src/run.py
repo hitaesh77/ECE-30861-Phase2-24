@@ -75,7 +75,20 @@ def classify_url(raw: str) -> tuple[UrlCategory, Provider, Dict[str, str]]:
     return UrlCategory.OTHER, Provider.OTHER, {"url": s}
 
 
-@click.group(context_settings=dict(help_option_names=["-h", "--help"]))
+# custom group that defaults to "urls" command
+class DefaultGroup(click.Group):
+    def __init__(self, *args, **kwargs):
+        self.default_cmd_name = kwargs.pop("default_cmd_name", None)
+        super().__init__(*args, **kwargs)
+
+    def parse_args(self, ctx, args):
+        if args and not self.get_command(ctx, args[0]):
+            # route first token into the default command
+            args.insert(0, self.default_cmd_name)
+        return super().parse_args(ctx, args)
+
+
+@click.group(cls=DefaultGroup, context_settings=dict(help_option_names=["-h", "--help"]), invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
     """
@@ -86,14 +99,6 @@ def cli(ctx):
       python run.py test      # Run tests
       python run.py FILE      # Grade URLs from file (or '-' for stdin)
     """
-    if ctx.invoked_subcommand is None:
-        if not ctx.args:
-            click.echo(ctx.get_help())
-            ctx.exit(1)
-        # treat the first leftover token as a filename
-        urls_file = ctx.args[0]
-        ctx.invoke(urls_command, urls_file=urls_file)
-
 
 @cli.command(short_help="Run tests and print required summary line.")
 @click.option("--min-coverage", type=int, default=80, show_default=True, help="Minimum coverage to pass.")
@@ -130,7 +135,7 @@ def install():
 
 
 # Change the urls command name to make it private
-@cli.command("_urls", hidden=True)
+@cli.command("_urls")
 @click.argument("urls_file", required=True)
 def urls_command(urls_file: str):
     """Process a newline-delimited URL file (or '-' for stdin)."""
