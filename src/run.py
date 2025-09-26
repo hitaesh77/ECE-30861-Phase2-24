@@ -58,6 +58,8 @@ class GradeResult(TypedDict):
     code_quality: float
     code_quality_latency: int
 
+def run_all_metrics(model_url: str, dataset_url: str | None, code_url: str | None) -> GradeResult:
+    grade_result = GradeResult()
 
 # ---- Ingest: URL parsing & classification (stub) ----
 def classify_url(raw: str) -> tuple[UrlCategory, Provider, Dict[str, str]]:
@@ -160,6 +162,7 @@ def urls_command(urls_file: str):
             click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
             url_dictionary[category] = ids
 
+        click.echo(f"Final URL dictionary: {url_dictionary}")
 
 if __name__ == "__main__":
     raise SystemExit(cli())
