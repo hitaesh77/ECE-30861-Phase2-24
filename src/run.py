@@ -145,11 +145,18 @@ def urls_command(urls_file: str):
         sys.exit(1)
     lines = [ln.strip() for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()]
     source = str(p)
-    click.echo(f"Read {len(lines)} URL(s) from {source}. (grading stub)")
+    click.echo(f"Read {len(lines)} lines from {source}. (grading stub)")
     
     for line in lines:
-        category, provider, ids = classify_url(line)
-        click.echo(f"URL: {line}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
+        click.echo(f"Processing line: {line}")
+        for url in line.split(","):
+            
+            if url is None or url.strip() == "":
+                # click.echo("Skipping empty URL.")
+                continue
+            click.echo(f"Classifying URL: {url}")
+            category, provider, ids = classify_url(url)
+            click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
 
 
 if __name__ == "__main__":
