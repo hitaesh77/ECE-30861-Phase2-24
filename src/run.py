@@ -149,6 +149,7 @@ def urls_command(urls_file: str):
     
     for line in lines:
         click.echo(f"Processing line: {line}")
+        url_dictionary = {}
         for url in line.split(","):
             
             if url is None or url.strip() == "":
@@ -157,6 +158,7 @@ def urls_command(urls_file: str):
             click.echo(f"Classifying URL: {url}")
             category, provider, ids = classify_url(url)
             click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
+            url_dictionary[category] = ids
 
 
 if __name__ == "__main__":
