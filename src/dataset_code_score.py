@@ -6,7 +6,7 @@ import time
 
 ERROR_VALUE = -1.0
 
-def dataset_code_score(payload: dict, api_key: str) -> tuple:
+async def compute(payload: dict, api_key: str) -> tuple:
     """
     Grade how well a Hugging Face model's code and dataset are documented.
     

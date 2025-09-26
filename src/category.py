@@ -2,7 +2,7 @@
 
 from run import UrlCategory
 
-def compute(payload: dict) -> str:
+async def compute(payload: dict) -> str:
     """
     Returns the category of model.
     """

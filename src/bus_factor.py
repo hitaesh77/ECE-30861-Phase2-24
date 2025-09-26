@@ -4,7 +4,7 @@ import time
 
 ERROR_VALUE = -1.0
 
-def compute(payload: dict) -> tuple:
+async def compute(payload: dict) -> tuple:
     """
     Calculates the bus factor (robustness to ablation) for a Hugging Face model.
     Returns (score, latency_ms).

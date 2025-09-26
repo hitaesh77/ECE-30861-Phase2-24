@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 ERROR_VALUE = -1.0
 
-def compute(payload : dict, api_key: str) -> float:
+async def compute(payload : dict, api_key: str) -> float:
     """
     Fetch a Hugging Face model card from a full link and grade its informational value.
     
