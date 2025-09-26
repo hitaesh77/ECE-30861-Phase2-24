@@ -3,7 +3,7 @@ import time
 
 ERROR_VALUE = {"raspberry_pi": 0.0, "jetson_nano": 0.0, "desktop_pc": 0.0, "aws_server": 0.0}
 
-def size_score_from_hf(hf_link: str) -> tuple:
+def compute(payload: dict) -> tuple:
     """
     Compute hardware compatibility scores for a Hugging Face model link.
     
@@ -17,7 +17,7 @@ def size_score_from_hf(hf_link: str) -> tuple:
 
     try:
         # Extract model id from link
-        model_id = hf_link.strip("/").split("huggingface.co/")[-1]
+        model_id = (payload.get("url")).strip("/").split("huggingface.co/")[-1]
 
         # Call Hugging Face API
         url = f"https://huggingface.co/api/models/{model_id}"
