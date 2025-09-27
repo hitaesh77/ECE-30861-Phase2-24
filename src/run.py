@@ -156,7 +156,9 @@ def urls_command(urls_file: str):
             category, provider, ids = classify_url(url)
             click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
             url_dictionary[category] = ids
-
+        
+        result: GradeResult = run_metrics(url_dictionary)
+        print(json.dumps(result))
 
 if __name__ == "__main__":
     raise SystemExit(cli())
