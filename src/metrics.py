@@ -13,6 +13,60 @@ from run import GradeResult
 
 ERROR_VALUE = -1.0
 
+
+
+
+class UrlCategory(str, Enum):
+    MODEL = "MODEL"
+    DATASET = "DATASET"
+    CODE = "CODE"
+
+
+# Optional: if you want to branch logic later
+
+
+class Provider(str, Enum):
+    HUGGINGFACE = "huggingface"
+    GITHUB = "github"
+    OTHER = "other"
+
+
+# ---- Domain: NDJSON output schema for MODEL lines ----
+
+
+class SizeScore(TypedDict):
+    raspberry_pi: float
+    jetson_nano: float
+    desktop_pc: float
+    aws_server: float
+
+
+class GradeResult(TypedDict):
+    name: str
+    category: Literal["MODEL"]
+    net_score: float
+    net_score_latency: int
+    ramp_up_time: float
+    ramp_up_time_latency: int
+    bus_factor: float
+    bus_factor_latency: int
+    performance_claims: float
+    performance_claims_latency: int
+    license: float
+    license_latency: int
+    size_score: SizeScore
+    size_score_latency: int
+    dataset_and_code_score: float
+    dataset_and_code_score_latency: int
+    dataset_quality: float
+    dataset_quality_latency: int
+    code_quality: float
+    code_quality_latency: int
+
+
+
+
+
 def bus_factor():
     return 1
 
@@ -54,7 +108,8 @@ async def dataset_code_score():
 
 
 # run tasks
-async def run_metrics(urls : Dict[str, str]) -> Dict[str, float]:
+async def run_metrics(urls: Dict[str, str]) -> GradeResult:
+    print(f"running all metrics {urls}")
     """Run all relevant metrics based on URL classification."""
     tasks = []
     task_names = []
