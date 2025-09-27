@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 # run.py
-import sys
+import sys, click, asyncio, json, subprocess
 from pathlib import Path
-import click
 from enum import Enum
 from typing import TypedDict, Literal, Dict
-import subprocess
-import asyncio
-
+from metrics import run_metrics
 # ---- Domain: URL Classification -----
 
 
@@ -159,7 +156,9 @@ def urls_command(urls_file: str):
             category, provider, ids = classify_url(url)
             click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
             url_dictionary[category] = ids
-
+        
+        result: GradeResult = run_metrics(url_dictionary)
+        print(json.dumps(result))
 
 if __name__ == "__main__":
     raise SystemExit(cli())

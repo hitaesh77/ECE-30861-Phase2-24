@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from run import UrlCategory, Provider
 import logging
 from typing import Dict, Tuple
+from run import GradeResult
 
 ERROR_VALUE = -1.0
 
@@ -309,52 +310,39 @@ Repository content:
 
 
 # run tasks
-async def run_metrics(category: UrlCategory, provider: Provider, ids: Dict[str, str], metric_scores: Dict) -> Dict[str, float]:
+async def run_metrics(urls : Dict[str, str]) -> Dict[str, float]:
     """Run all relevant metrics based on URL classification."""
     tasks = []
     task_names = []
 
     # Common metrics for all types
     tasks.extend([
-        responsive_maintainer(),
-        code_quality()
+        responsive_maintainer(urls),
+        code_quality(urls),
+        performance_claims(urls),
+        bus_factor(urls),
+        size(urls),
+        ramp_up_time(urls),
+        license(urls),
+        dataset_quality(urls),
+        dataset_code_score(urls),
+        code_quality(urls),
     ])
-    task_names.extend(['responsive_maintainer', 'code_quality'])
-
-    # Add category-specific metrics
-    if category == UrlCategory.MODEL:
-        tasks.extend([
-            performance_claims(),
-            bus_factor(ids['url']),
-            size(),
-            ramp_up_time(),
-            license()
-        ])
-        task_names.extend([
-            'performance_claims',
-            'bus_factor',
-            'size',
-            'ramp_up_time',
-            'license'
-        ])
-
-    elif category == UrlCategory.DATASET:
-        tasks.extend([
-            dataset_quality(),
-            dataset_code_score()
-        ])
-        task_names.extend(['dataset_quality', 'dataset_code_score'])
-
-    elif category == UrlCategory.CODE:
-        tasks.extend([
-            code_quality(),
-            license()
-        ])
-        task_names.extend(['code_quality', 'license'])
+    task_names.extend(['responsive_maintainer', 
+                        'code_quality', 
+                        'performance_claims',
+                        'bus_factor',
+                        'size',
+                        'ramp_up_time',
+                        'license',
+                        'dataset_quality',
+                        'dataset_code_score',
+                        'code_quality'])
 
     # Wait for all tasks to complete
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
+    metric_scores: GradeResult = {}
     # Store results in metric_scores dictionary
     for name, result in zip(task_names, results):
         if isinstance(result, Exception):
