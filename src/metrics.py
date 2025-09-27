@@ -9,6 +9,14 @@ import logging
 from typing import Dict, TypedDict, Literal
 from enum import Enum
 
+# Metric function imports
+from bus_factor import compute as bus_factor
+from code_quality import compute as code_quality
+from dataset_code_score import compute as dataset_code_score
+from dataset_quality import compute as dataset_quality
+from license import compute as license
+from performance_claims import compute as performance_claims
+from ramp_up_time import compute as ramp_up_time
 
 ERROR_VALUE = -1.0
 
@@ -60,102 +68,46 @@ class GradeResult(TypedDict):
     code_quality: float
     code_quality_latency: int
 
-
-def bus_factor():
-    return 1
-
-
-def correctness():
-    return 1
-
-
-def license():
-    return 1
-
-
-def netscore():
-    return 1
-
-
-def ramp_up_time():
-    return 1
-
-
-def size():
-    return 1
-
-
-# async functions -- for api bound calculations
-async def performance_claims():
-    await asyncio.sleep(0.2)  # simulates api latency
-    return 1
-
-
-async def responsive_maintainer():
-    await asyncio.sleep(0.4)
-    return 1
-
-
-async def code_quality():
-    await asyncio.sleep(0.3)
-    return 1
-
-
-async def dataset_quality():
-    await asyncio.sleep(0.6)
-    return 1
-
-
-async def dataset_code_score():
-    await asyncio.sleep(0.6)
-    return 1
-
-
 # run tasks
-async def run_metrics(urls: Dict[str, str]) -> GradeResult:
+async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
     print(f"running all metrics {urls}")
-    """Run all relevant metrics based on URL classification."""
-    tasks = []
-    task_names = []
 
-    # Common metrics for all types
-    tasks.extend([
-        responsive_maintainer(urls),
-        code_quality(urls),
-        performance_claims(urls),
-        bus_factor(urls),
-        size(urls),
-        ramp_up_time(urls),
-        license(urls),
-        dataset_quality(urls),
-        dataset_code_score(urls),
-        code_quality(urls),
-    ])
-    task_names.extend(['responsive_maintainer', 
-                        'code_quality', 
-                        'performance_claims',
-                        'bus_factor',
-                        'size',
-                        'ramp_up_time',
-                        'license',
-                        'dataset_quality',
-                        'dataset_code_score',
-                        'code_quality'])
+    model_url = urls.get(UrlCategory.MODEL)
+    dataset_url = urls.get(UrlCategory.DATASET)
+    code_url = urls.get(UrlCategory.CODE)
 
-    # Wait for all tasks to complete
+    # List of (metric_name, metric_func) pairs
+    metric_funcs = [
+        ("responsive_maintainer", responsive_maintainer),
+        ("code_quality", code_quality),
+        ("performance_claims", performance_claims),
+        ("bus_factor", bus_factor),
+        ("size", size),
+        ("ramp_up_time", ramp_up_time),
+        ("license", license),
+        ("dataset_quality", dataset_quality),
+        ("dataset_code_score", dataset_code_score),
+    ]
+
+    # Build tasks and names in sync
+    task_names = [name for name, _ in metric_funcs]
+    tasks = [func(model_url, code_url, dataset_url) for _, func in metric_funcs]
+
+    # Run them concurrently
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     metric_scores: GradeResult = {}
-    # Store results in metric_scores dictionary
+
+    # Store results
     for name, result in zip(task_names, results):
         if isinstance(result, Exception):
             logging.error(f"Error in metric {name}: {result}")
             metric_scores[name] = ERROR_VALUE
             metric_scores[f"{name}_latency"] = 0.0
         else:
-            # All metrics now return (score, latency)
             score, latency = result
             metric_scores[name] = score
             metric_scores[f"{name}_latency"] = latency
 
+    # Wrap with required metadata for GradeResult
     return metric_scores

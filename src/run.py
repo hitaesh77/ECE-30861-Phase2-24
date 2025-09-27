@@ -108,7 +108,7 @@ def urls_command(urls_file: str):
             click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
             url_dictionary[category] = ids
         
-        result: GradeResult = run_metrics(url_dictionary)
+        result: GradeResult = asyncio.run(run_metrics(url_dictionary))
         print(json.dumps(result))
 
 if __name__ == "__main__":
