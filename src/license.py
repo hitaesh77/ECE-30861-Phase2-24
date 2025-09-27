@@ -1,9 +1,10 @@
 import requests
 import time  
+from typing import Tuple
 
 ERROR_VALUE = -1.0  # global fallback value
 
-async def compute(payload : dict) -> tuple:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Compute a license score for a Hugging Face model.
     
@@ -17,7 +18,7 @@ async def compute(payload : dict) -> tuple:
 
     try:
         # Extract model_id from link
-        model_id = (payload.get("url")).replace("https://huggingface.co/", "").strip("/")
+        model_id = model_url.replace("https://huggingface.co/", "").strip("/")
         url = f"https://huggingface.co/api/models/{model_id}"
         
         # Fetch model metadata

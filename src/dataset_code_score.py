@@ -4,9 +4,10 @@ from urllib.parse import urlparse
 from typing import Dict, Tuple
 import time
 
+
 ERROR_VALUE = -1.0
 
-async def compute(payload: dict, api_key: str) -> tuple:
+async def compute (model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Grade how well a Hugging Face model's code and dataset are documented.
     
@@ -20,7 +21,7 @@ async def compute(payload: dict, api_key: str) -> tuple:
     start_time = time.time()
     # --- Step 1: Parse model_id ---
     try:
-        model_id = (payload.get("url")).replace("https://huggingface.co/", "").strip("/") #removing the huggingface part of the link to get the model id
+        model_id = model_url.replace("https://huggingface.co/", "").strip("/") #removing the huggingface part of the link to get the model id
     except Exception as e:
         print(f"Error parsing Hugging Face link: {e}") #exception if huggingface is wrong
         return ERROR_VALUE, (time.time() - start_time) * 1000
