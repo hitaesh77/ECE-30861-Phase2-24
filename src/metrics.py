@@ -10,13 +10,17 @@ from typing import Dict, TypedDict, Literal
 from enum import Enum
 
 # Metric function imports
-from bus_factor import compute as bus_factor
-from code_quality import compute as code_quality
-from dataset_code_score import compute as dataset_code_score
-from dataset_quality import compute as dataset_quality
-from license import compute as license
-from performance_claims import compute as performance_claims
+from name import compute as name
+from category import compute as category
+from netscore import compute as net_score
 from ramp_up_time import compute as ramp_up_time
+from bus_factor import compute as bus_factor
+from performance_claims import compute as performance_claims
+from license import compute as license
+from size_score import compute as size_score
+from dataset_code_score import compute as dataset_and_code_score
+from dataset_quality import compute as dataset_quality
+from code_quality import compute as code_quality
 
 ERROR_VALUE = -1.0
 
