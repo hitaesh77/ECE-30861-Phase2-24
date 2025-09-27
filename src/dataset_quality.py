@@ -1,33 +1,35 @@
-# metrics/dataset_quality_metric.py
+# dataset_quality.py
 
-import asyncio
+import time
 from huggingface_hub import HfApi
 
-async def compute(payload: dict) -> float:
+def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
     """
-    Compute dataset quality using Hugging Face Hub metadata.
-    Metric score is based on presence of description, license, and size info.
+    Lightweight dataset quality score using Hugging Face Hub metadata.
     """
-    url = payload.get("url", "")
+    startTime = time.time()
 
-    if "huggingface.co/datasets" not in url:
+    if not dataset_url or "huggingface.co/datasets" not in dataset_url:
         return 0.0
-    owner = payload.get("owner")
-    name = payload.get("name")
-    repo_id = f"{owner}/{name}" if owner and name else name
+
+    parts = dataset_url.strip("/").split("/")
+    if len(parts) < 5:
+        return 0.0
+
+    owner, name = parts[-2], parts[-1]
+    repo_id = f"{owner}/{name}"
 
     api = HfApi()
     try:
         info = api.dataset_info(repo_id)
     except Exception:
-        return 0.0  # if fetch fails, consider quality unknown
+        return 0.0
 
-    # metadata checks
     has_description = bool(info.card_data.get("description"))
     has_license = bool(info.card_data.get("license"))
-    has_size = bool(info.siblings)  # if there are files listed, then dataset content exists
-
-    checks = [has_description, has_license, has_size]
-    score = sum(checks) / len(checks)
-
-    return score
+    has_files = bool(info.siblings)
+    
+    score = sum([has_description, has_license, has_files]) / 3
+    latency_ms = (time.time() - startTime) * 1000
+    
+    return score, latency_ms

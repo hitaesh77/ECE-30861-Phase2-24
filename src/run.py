@@ -3,12 +3,13 @@
 import sys, click, asyncio, json, subprocess
 from pathlib import Path
 from enum import Enum
-from typing import TypedDict, Literal, Dict
+from typing import TypedDict, Literal, Dict, Tuple
 from metrics import run_metrics, GradeResult, UrlCategory, Provider
 # ---- Domain: URL Classification -----
 
+
 # ---- Ingest: URL parsing & classification (stub) ----
-def classify_url(raw: str) -> tuple[UrlCategory, Provider, Dict[str, str]]:
+def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
     """Return (category, provider, ids) for a URL string. Improved dataset detection."""
     s = raw.strip()
     if "huggingface.co" in s:

@@ -4,3 +4,5 @@ log.txt
 # Package managers
 llmgrader.egg-info/
 
+#API keys
+api_keys.py
