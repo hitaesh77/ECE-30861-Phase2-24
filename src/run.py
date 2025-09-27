@@ -1,63 +1,11 @@
 #!/usr/bin/env python3
 # run.py
-import sys
+import sys, click, asyncio, json, subprocess
 from pathlib import Path
-import click
 from enum import Enum
 from typing import TypedDict, Literal, Dict
-import subprocess
-import asyncio
-
+from metrics import run_metrics, GradeResult, UrlCategory, Provider
 # ---- Domain: URL Classification -----
-
-
-class UrlCategory(str, Enum):
-    MODEL = "MODEL"
-    DATASET = "DATASET"
-    CODE = "CODE"
-
-
-# Optional: if you want to branch logic later
-
-
-class Provider(str, Enum):
-    HUGGINGFACE = "huggingface"
-    GITHUB = "github"
-    OTHER = "other"
-
-
-# ---- Domain: NDJSON output schema for MODEL lines ----
-
-
-class SizeScore(TypedDict):
-    raspberry_pi: float
-    jetson_nano: float
-    desktop_pc: float
-    aws_server: float
-
-
-class GradeResult(TypedDict):
-    name: str
-    category: Literal["MODEL"]
-    net_score: float
-    net_score_latency: int
-    ramp_up_time: float
-    ramp_up_time_latency: int
-    bus_factor: float
-    bus_factor_latency: int
-    performance_claims: float
-    performance_claims_latency: int
-    license: float
-    license_latency: int
-    size_score: SizeScore
-    size_score_latency: int
-    dataset_and_code_score: float
-    dataset_and_code_score_latency: int
-    dataset_quality: float
-    dataset_quality_latency: int
-    code_quality: float
-    code_quality_latency: int
-
 
 # ---- Ingest: URL parsing & classification (stub) ----
 def classify_url(raw: str) -> tuple[UrlCategory, Provider, Dict[str, str]]:
@@ -159,7 +107,9 @@ def urls_command(urls_file: str):
             category, provider, ids = classify_url(url)
             click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
             url_dictionary[category] = ids
-
+        
+        result: GradeResult = asyncio.run(run_metrics(url_dictionary))
+        print(json.dumps(result))
 
 if __name__ == "__main__":
     raise SystemExit(cli())
