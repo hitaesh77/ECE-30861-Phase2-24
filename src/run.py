@@ -4,7 +4,7 @@ import sys, click, asyncio, json, subprocess
 from pathlib import Path
 from enum import Enum
 from typing import TypedDict, Literal, Dict
-from metrics import run_metrics
+from metrics import run_metrics, GradeResult, UrlCategory, Provider
 # ---- Domain: URL Classification -----
 
 # ---- Ingest: URL parsing & classification (stub) ----

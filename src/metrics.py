@@ -1,19 +1,16 @@
-import asyncio
-import concurrent.futures
 # from transformers import AutoModelForCausalLM, AutoTokenizer
 # import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
 # import time
 # import requests
 # import openai
+import asyncio
 from urllib.parse import urlparse
-from run import UrlCategory, Provider
 import logging
-from typing import Dict, Tuple
-from run import GradeResult
+from typing import Dict, TypedDict, Literal
+from enum import Enum
+
 
 ERROR_VALUE = -1.0
-
-
 
 
 class UrlCategory(str, Enum):
@@ -64,43 +61,50 @@ class GradeResult(TypedDict):
     code_quality_latency: int
 
 
-
-
-
 def bus_factor():
     return 1
+
 
 def correctness():
     return 1
 
+
 def license():
     return 1
+
 
 def netscore():
     return 1
 
+
 def ramp_up_time():
     return 1
 
+
 def size():
     return 1
+
 
 # async functions -- for api bound calculations
 async def performance_claims():
     await asyncio.sleep(0.2)  # simulates api latency
     return 1
 
+
 async def responsive_maintainer():
     await asyncio.sleep(0.4)
     return 1
+
 
 async def code_quality():
     await asyncio.sleep(0.3)
     return 1
 
+
 async def dataset_quality():
     await asyncio.sleep(0.6)
     return 1
+
 
 async def dataset_code_score():
     await asyncio.sleep(0.6)
