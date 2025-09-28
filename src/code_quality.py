@@ -8,7 +8,7 @@ import logging
 import git  # from GitPython
 
 
-async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
     """
     Compute code quality metric based on GitHub repo metadata.
     Returns: (score [0-1], latency_ms)
@@ -17,7 +17,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
 
     if not code_url or "github.com" not in code_url:
         logging.warning("No valid code_url provided, defaulting code_quality=0.0")
-        return 0.0, (time.perf_counter() - start) * 1000
+        return 0.0, (int)((time.perf_counter() - start) * 1000)
 
     tmpdir = tempfile.mkdtemp(prefix="code_quality_")
     score = 0.0
@@ -50,5 +50,5 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-    latency_ms = (time.perf_counter() - start) * 1000
+    latency_ms = (int)((time.perf_counter() - start) * 1000)
     return score, latency_ms
