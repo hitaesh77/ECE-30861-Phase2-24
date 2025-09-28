@@ -1,10 +1,11 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
 import time
+from typing import Tuple
 
 ERROR_VALUE = -1.0
 
-def compute(payload: dict) -> tuple:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Calculates the bus factor (robustness to ablation) for a Hugging Face model.
     Returns (score, latency_ms).
@@ -15,8 +16,8 @@ def compute(payload: dict) -> tuple:
 
     # Try to load the model + tokenizer
     try:
-        tokenizer = AutoTokenizer.from_pretrained(payload.get("url")) #need tokenizer to convert text to language LLM can understand. using huggingface tokenizer
-        model = AutoModelForCausalLM.from_pretrained(payload.get("url"))  #loading model from huggingface for analysis
+        tokenizer = AutoTokenizer.from_pretrained(model_url) #need tokenizer to convert text to language LLM can understand. using huggingface tokenizer
+        model = AutoModelForCausalLM.from_pretrained(model_url)  #loading model from huggingface for analysis
         model.eval()
     except Exception as e:
         #print(f"[Error] Could not load model: {e}") //log file will print to stdout

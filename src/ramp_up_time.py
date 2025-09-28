@@ -2,10 +2,11 @@ import time
 import requests
 import openai
 from urllib.parse import urlparse
+from typing import Tuple
 
 ERROR_VALUE = -1.0
 
-def compute(payload : dict, api_key: str) -> float:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Fetch a Hugging Face model card from a full link and grade its informational value.
     
@@ -21,7 +22,7 @@ def compute(payload : dict, api_key: str) -> float:
 
     # Step 0: Extract model_id from full URL
     try:
-        parsed = urlparse(payload.get(url)) #parsing the url using urlparse from urllib.parse
+        parsed = urlparse(model_url) #parsing the url using urlparse from urllib.parse
         path_parts = parsed.path.strip("/").split("/") #splititing up url to get huggingface Key
         if len(path_parts) == 0: #if no path parts, return error
             return ERROR_VALUE, (time.time() - start_time) * 1000

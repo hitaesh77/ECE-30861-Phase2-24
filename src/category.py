@@ -1,9 +1,9 @@
 # category.py
 
 import time
-from run import UrlCategory
 
-def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
+
+async def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
     """
     Returns the category of model.
     """

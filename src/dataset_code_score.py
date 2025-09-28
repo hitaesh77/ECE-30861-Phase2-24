@@ -3,10 +3,11 @@ import openai
 from urllib.parse import urlparse
 from typing import Dict, Tuple
 import time
+from api_keys import open_ai_key
 
 ERROR_VALUE = -1.0
 
-def dataset_code_score(payload: dict, api_key: str) -> tuple:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Grade how well a Hugging Face model's code and dataset are documented.
     
@@ -20,7 +21,7 @@ def dataset_code_score(payload: dict, api_key: str) -> tuple:
     start_time = time.time()
     # --- Step 1: Parse model_id ---
     try:
-        model_id = (payload.get("url")).replace("https://huggingface.co/", "").strip("/") #removing the huggingface part of the link to get the model id
+        model_id = model_url.replace("https://huggingface.co/", "").strip("/") #removing the huggingface part of the link to get the model id
     except Exception as e:
         print(f"Error parsing Hugging Face link: {e}") #exception if huggingface is wrong
         return ERROR_VALUE, (time.time() - start_time) * 1000
@@ -69,6 +70,7 @@ def dataset_code_score(payload: dict, api_key: str) -> tuple:
         code_texts.append("NO CODE FILES PROVIDED")
 
     # --- Step 4: Build combined evaluation text ---
+    joined = "\n\n".join(code_texts)
     combined_text = f"""
 === MODEL CARD === in case of no model card, tell no model card provided. Ideally there will be a model card if it is a valid link but private models, new/experiemntal models and minimal repos that are just weights will not hav a card
 {model_card if model_card else "NO MODEL CARD PROVIDED"} 
@@ -77,10 +79,9 @@ def dataset_code_score(payload: dict, api_key: str) -> tuple:
 {dataset_text} 
 
 === CODE SNIPPETS ===
-{"\n\n".join(code_texts)}
-"""
+{joined}"""
 
-    if not combined_text.strip(): #if no text at all, return error
+    if not combined_text.strip():  # if no text at all, return error
         return ERROR_VALUE, (time.time() - start_time) * 1000
 
     # --- Step 5: Prompt LLM for grading ---
@@ -103,8 +104,8 @@ Repository content:
 \"\"\"
 """
 
-    try: #call LLM to grade documentation based off prompt, check prior documentation for explaination
-        openai.api_key = api_key
+    try:  # call LLM to grade documentation based off prompt, check prior documentation for explaination
+        openai.api_key = open_ai_key
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],

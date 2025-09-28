@@ -3,7 +3,7 @@ import time
 
 ERROR_VALUE = {"raspberry_pi": 0.0, "jetson_nano": 0.0, "desktop_pc": 0.0, "aws_server": 0.0}
 
-def compute(payload: dict) -> tuple:
+async def compute(payload: dict) -> tuple:
     """
     Compute hardware compatibility scores for a Hugging Face model link.
     
