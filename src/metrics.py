@@ -83,21 +83,23 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
 
     # List of (metric_name, metric_func) pairs
     metric_funcs = [
-        ("name", name),
-        ("category", category),
-        ("code_quality", code_quality),
-        ("performance_claims", performance_claims),
-        ("bus_factor", bus_factor),
-        ("size", size),
-        ("ramp_up_time", ramp_up_time),
-        ("license", license),
-        ("dataset_quality", dataset_quality),
-        ("dataset_and_code_score", dataset_and_code_score),
+        ("name", name, 1),
+        ("category", category, 0),
+        ("code_quality", code_quality, 0),
+        ("performance_claims", performance_claims, 0),
+        ("bus_factor", bus_factor, 0),
+        ("size", size, 0),
+        ("ramp_up_time", ramp_up_time, 0),
+        ("license", license, 0),
+        ("dataset_quality", dataset_quality, 0),
+        ("dataset_and_code_score", dataset_and_code_score, 0),
     ]
 
     # Build tasks and names in sync
-    task_names = [name for name, _ in metric_funcs]
-    tasks = [func(model_url, code_url, dataset_url) for _, func in metric_funcs]
+    task_names = [name for name, _, en in metric_funcs if en]
+    tasks = [func(model_url, code_url, dataset_url) for _, func, en in metric_funcs if en]
+
+    print("running tasks: ", task_names)
 
     # Run them concurrently
     results = await asyncio.gather(*tasks, return_exceptions=True)

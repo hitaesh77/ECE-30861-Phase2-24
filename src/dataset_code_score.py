@@ -81,7 +81,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
 === CODE SNIPPETS ===
 {joined}"""
 
-    if not combined_text.strip(): #if no text at all, return error
+    if not combined_text.strip():  # if no text at all, return error
         return ERROR_VALUE, (time.time() - start_time) * 1000
 
     # --- Step 5: Prompt LLM for grading ---
@@ -104,7 +104,7 @@ Repository content:
 \"\"\"
 """
 
-    try: #call LLM to grade documentation based off prompt, check prior documentation for explaination
+    try:  # call LLM to grade documentation based off prompt, check prior documentation for explaination
         openai.api_key = open_ai_key
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
