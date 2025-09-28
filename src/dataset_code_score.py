@@ -3,7 +3,7 @@ import openai
 from urllib.parse import urlparse
 from typing import Dict, Tuple
 import time
-
+from api_keys import open_ai_key
 
 ERROR_VALUE = -1.0
 
@@ -78,8 +78,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
 {dataset_text} 
 
 === CODE SNIPPETS ===
-{"\n\n".join(code_texts)}
-"""
+{"\n\n".join(code_texts)}"""
 
     if not combined_text.strip(): #if no text at all, return error
         return ERROR_VALUE, (time.time() - start_time) * 1000
@@ -105,7 +104,7 @@ Repository content:
 """
 
     try: #call LLM to grade documentation based off prompt, check prior documentation for explaination
-        openai.api_key = api_key
+        openai.api_key = open_ai_key
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
