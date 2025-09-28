@@ -21,7 +21,7 @@ def bounds(x: float, bottom: float = 0, top: float = 1) -> float:
         return top
     return x
 
-def computation(metrics: Mapping[str, float]) -> Tuple[float, int]:
+def compute(metrics: Mapping[str, float]) -> Tuple[float, int]:
     startTime = time.perf_counter_ns()
     
     net = float(0)

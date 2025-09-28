@@ -7,7 +7,7 @@ import time
 
 ERROR_VALUE = -1.0
 
-async def compute (model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Grade how well a Hugging Face model's code and dataset are documented.
     

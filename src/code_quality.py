@@ -8,7 +8,7 @@ import logging
 import git  # from GitPython
 
 
-def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Compute code quality metric based on GitHub repo metadata.
     Returns: (score [0-1], latency_ms)

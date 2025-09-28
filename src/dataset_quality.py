@@ -3,7 +3,7 @@
 import time
 from huggingface_hub import HfApi
 
-def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
+async def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
     """
     Lightweight dataset quality score using Hugging Face Hub metadata.
     """
