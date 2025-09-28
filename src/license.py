@@ -4,6 +4,7 @@ from typing import Tuple
 
 ERROR_VALUE = -1.0  # global fallback value
 
+
 async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
     """
     Compute a license score for a Hugging Face model.
