@@ -6,7 +6,7 @@ from typing import Tuple
 # path segments that indicate we've gone past the repo id into files/views
 _RESERVED = {"resolve", "blob", "tree", "commit", "commits", "discussions", "revision", "files"}
 
-async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[str, float]:
+async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[str, int]:
     """
     Returns the model name from a Hugging Face model URL.
     """
@@ -32,5 +32,5 @@ async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[str,
                 if repo_parts:
                     model_name = repo_parts[-1]
 
-    latency_ms = (time.time() - startTime) * 1000
+    latency_ms = (int)((time.time() - startTime) * 1000)
     return model_name, latency_ms
