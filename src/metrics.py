@@ -17,7 +17,7 @@ from ramp_up_time import compute as ramp_up_time
 from bus_factor import compute as bus_factor
 from performance_claims import compute as performance_claims
 from license import compute as license
-from size_score import compute as size_score
+from size_score import compute as size
 from dataset_code_score import compute as dataset_and_code_score
 from dataset_quality import compute as dataset_quality
 from code_quality import compute as code_quality
@@ -82,7 +82,8 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
 
     # List of (metric_name, metric_func) pairs
     metric_funcs = [
-        ("responsive_maintainer", responsive_maintainer),
+        ("name", name),
+        ("category", category),
         ("code_quality", code_quality),
         ("performance_claims", performance_claims),
         ("bus_factor", bus_factor),
@@ -90,7 +91,7 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
         ("ramp_up_time", ramp_up_time),
         ("license", license),
         ("dataset_quality", dataset_quality),
-        ("dataset_code_score", dataset_code_score),
+        ("dataset_and_code_score", dataset_and_code_score),
     ]
 
     # Build tasks and names in sync
@@ -99,19 +100,23 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
 
     # Run them concurrently
     results = await asyncio.gather(*tasks, return_exceptions=True)
-
     metric_scores: GradeResult = {}
 
     # Store results
-    for name, result in zip(task_names, results):
+    for n, result in zip(task_names, results):
         if isinstance(result, Exception):
-            logging.error(f"Error in metric {name}: {result}")
-            metric_scores[name] = ERROR_VALUE
-            metric_scores[f"{name}_latency"] = 0.0
+            logging.error(f"Error in metric {n}: {result}")
+            metric_scores[n] = ERROR_VALUE
+            metric_scores[f"{n}_latency"] = 0.0
         else:
             score, latency = result
-            metric_scores[name] = score
-            metric_scores[f"{name}_latency"] = latency
+            metric_scores[n] = score
+            metric_scores[f"{n}_latency"] = latency
+
+    net, net_latency = net_score(metric_scores)
+    metric_scores["net_score"] = net
+    metric_scores["net_score_latency"] = net_latency
+
 
     # Wrap with required metadata for GradeResult
     return metric_scores
