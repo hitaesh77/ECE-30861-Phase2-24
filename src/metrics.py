@@ -81,12 +81,14 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
     dataset_url = urls.get(UrlCategory.DATASET) and urls.get(UrlCategory.DATASET)['url']
     code_url = urls.get(UrlCategory.CODE) and urls.get(UrlCategory.CODE)['url']
 
+    print("URLS: ", model_url, dataset_url, code_url)
+
     # List of (metric_name, metric_func) pairs
     metric_funcs = [
-        ("name", name, 1),
+        ("name", name, 0),
         ("category", category, 0),
         ("code_quality", code_quality, 0),
-        ("performance_claims", performance_claims, 0),
+        ("performance_claims", performance_claims, 1),
         ("bus_factor", bus_factor, 0),
         ("size", size, 0),
         ("ramp_up_time", ramp_up_time, 0),
