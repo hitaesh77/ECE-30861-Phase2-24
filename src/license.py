@@ -5,7 +5,7 @@ from typing import Tuple
 ERROR_VALUE = -1.0  # global fallback value
 
 
-async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
     """
     Compute a license score for a Hugging Face model.
     
@@ -30,7 +30,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
         # Get license field (default to "unknown")
         license_name = data.get("cardData", {}).get("license", "").lower()
         if not license_name:
-            return 0.0, (time.time() - start_time) * 1000
+            return 0.0, (int)((time.time() - start_time) * 1000)
         
         # Define categories
         permissive = {"mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "mpl-2.0", "cc-by-4.0"}
@@ -54,8 +54,8 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
         else:
             # fallback: partial credit for unrecognized licenses
             score = 0.5
-        return score, (time.time() - start_time) * 1000
+        return score, (int)((time.time() - start_time) * 1000)
     except Exception as e:
         print(f"Error computing license score: {e}")
-        return ERROR_VALUE, (time.time() - start_time) * 1000
+        return ERROR_VALUE, (int)((time.time() - start_time) * 1000)
     
