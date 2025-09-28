@@ -70,6 +70,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
         code_texts.append("NO CODE FILES PROVIDED")
 
     # --- Step 4: Build combined evaluation text ---
+    joined = "\n\n".join(code_texts)
     combined_text = f"""
 === MODEL CARD === in case of no model card, tell no model card provided. Ideally there will be a model card if it is a valid link but private models, new/experiemntal models and minimal repos that are just weights will not hav a card
 {model_card if model_card else "NO MODEL CARD PROVIDED"} 
@@ -78,7 +79,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
 {dataset_text} 
 
 === CODE SNIPPETS ===
-{"\n\n".join(code_texts)}"""
+{joined}"""
 
     if not combined_text.strip(): #if no text at all, return error
         return ERROR_VALUE, (time.time() - start_time) * 1000
