@@ -15,7 +15,7 @@ BENCHMARK_KEYWORDS = [
     "imagenet", "cifar", "glue", "squad", "msmarco", "wikitext", "mt-bench"
 ]
 
-async def compute(model_url: str | None, code_url: str | None, dataset_url: str | None) -> tuple[float, float]:
+async def compute(model_url: str | None, code_url: str | None, dataset_url: str | None) -> tuple[float, int]:
     """
     Heuristic metric: detect performance/benchmark claims in a repo.
     Score = fraction of benchmark keywords found, capped at 1.0.
@@ -26,7 +26,7 @@ async def compute(model_url: str | None, code_url: str | None, dataset_url: str 
 
     if not code_url or "github.com" not in code_url:
         logging.warning("No valid code_url provided, defaulting performance_claims=0.0")
-        return 0.0, (time.perf_counter() - start) * 1000
+        return 0.0, (int)((time.perf_counter() - start) * 1000)
 
     tmpdir = tempfile.mkdtemp(prefix="perf_claims_")
     score = 0.0
@@ -66,5 +66,5 @@ async def compute(model_url: str | None, code_url: str | None, dataset_url: str 
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-    latency_ms = (time.perf_counter() - start) * 1000
+    latency_ms = (int)((time.perf_counter() - start) * 1000)
     return round(score, 2), latency_ms
