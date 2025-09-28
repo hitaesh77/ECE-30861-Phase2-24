@@ -14,14 +14,14 @@ WEIGHTS: Dict[str,float]={
 }
 
 # We use this function to ensure our score will always be in a range from 0 to 1, inclusive.
-async def bounds(x: float, bottom: float = 0, top: float = 1) -> float:
+def bounds(x: float, bottom: float = 0, top: float = 1) -> float:
     if x < bottom:
         return bottom
     if x > top:
         return top
     return x
 
-async def compute(metrics: Mapping[str, float]) -> Tuple[float, int]:
+def compute(metrics: Mapping[str, float]) -> Tuple[float, int]:
     startTime = time.perf_counter_ns()
     
     net = float(0)

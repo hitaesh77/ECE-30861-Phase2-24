@@ -77,9 +77,9 @@ class GradeResult(TypedDict):
 async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
     print(f"running all metrics {urls}")
 
-    model_url = urls.get(UrlCategory.MODEL)
-    dataset_url = urls.get(UrlCategory.DATASET)
-    code_url = urls.get(UrlCategory.CODE)
+    model_url = urls.get(UrlCategory.MODEL)['url']
+    dataset_url = urls.get(UrlCategory.DATASET) and urls.get(UrlCategory.DATASET)['url']
+    code_url = urls.get(UrlCategory.CODE) and urls.get(UrlCategory.CODE)['url']
 
     # List of (metric_name, metric_func) pairs
     metric_funcs = [
@@ -125,8 +125,10 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
                 metric_scores[f"{n}_latency"] = latency
 
     # Compute net score last
-    net, net_latency = net_score(metric_scores)
-    metric_scores["net_score"] = net
-    metric_scores["net_score_latency"] = net_latency
+    net_en = 0  # disabled
+    if net_en:
+        net, net_latency = net_score(metric_scores)
+        metric_scores["net_score"] = net
+        metric_scores["net_score_latency"] = net_latency
 
     return metric_scores
