@@ -72,6 +72,7 @@ class GradeResult(TypedDict):
     code_quality: float
     code_quality_latency: int
 
+
 # run tasks
 async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
     print(f"running all metrics {urls}")
@@ -104,19 +105,26 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
 
     # Store results
     for n, result in zip(task_names, results):
-        if isinstance(result, Exception):
-            logging.error(f"Error in metric {n}: {result}")
-            metric_scores[n] = ERROR_VALUE
-            metric_scores[f"{n}_latency"] = 0.0
+        if n == "name" or n == "category":
+            if isinstance(result, Exception):
+                logging.error(f"Error in metric {n}: {result}")
+                metric_scores[n] = ERROR_VALUE
+            else:
+                score, latency = result
+                metric_scores[n] = score
         else:
-            score, latency = result
-            metric_scores[n] = score
-            metric_scores[f"{n}_latency"] = latency
+            if isinstance(result, Exception):
+                logging.error(f"Error in metric {n}: {result}")
+                metric_scores[n] = ERROR_VALUE
+                metric_scores[f"{n}_latency"] = 0.0
+            else:
+                score, latency = result
+                metric_scores[n] = score
+                metric_scores[f"{n}_latency"] = latency
 
+    # Compute net score last
     net, net_latency = net_score(metric_scores)
     metric_scores["net_score"] = net
     metric_scores["net_score_latency"] = net_latency
 
-
-    # Wrap with required metadata for GradeResult
     return metric_scores
