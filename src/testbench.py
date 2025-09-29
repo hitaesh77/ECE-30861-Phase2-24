@@ -1,6 +1,6 @@
 import logging
 from metrics import run_all_metrics
-
+from test import setup_logger
 
 logger = setup_logger()
 
