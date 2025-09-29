@@ -9,5 +9,6 @@ llmgrader.egg-info/
 
 # pycache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
