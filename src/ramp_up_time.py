@@ -3,7 +3,6 @@ import requests
 import openai
 from urllib.parse import urlparse
 from typing import Tuple
-from api_keys import open_ai_key
 
 ERROR_VALUE = -1.0
 
