@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 # run.py
+import coverage
+import logging
 import sys, click, asyncio, json, subprocess, logging
 from pathlib import Path
 from enum import Enum
 from typing import TypedDict, Literal, Dict, Tuple
 from metrics import run_metrics, GradeResult, UrlCategory, Provider
-from testbench import run_tests
+from test import setup_logger
 # ---- Domain: URL Classification -----
 
+logger = setup_logger()
+cov = coverage.Coverage()
 
 # ---- Ingest: URL parsing & classification (stub) ----
 def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
@@ -50,12 +54,41 @@ def cli(ctx):
       python run.py FILE      # Grade URLs from file (or '-' for stdin)
     """
 
+def read_enter_delimited_file(filename):
+    with open(filename, "r", encoding="utf-8") as f:
+        data = f.read().splitlines()
+    return data
+
 @cli.command(short_help="Run tests and print required summary line.")
 @click.option("--min-coverage", type=int, default=80, show_default=True, help="Minimum coverage to pass.")
 def test(min_coverage: int):
-    # Minimal placeholder
-    retval = run_tests()
-    sys.exit(retval)
+    cov.start()
+
+    test_inputs = read_enter_delimited_file("test_inputs.txt")
+    total = len(test_inputs)
+    passed = 0
+
+    for idx, input_str in enumerate(test_inputs, start=1):
+        logger.info(f"Running Test {idx} with input: {input_str}")
+
+        try:
+            result = urls_command(input_str)
+
+            logger.info(f"Test {idx} completed successfully.")
+            logger.debug(f"Test {idx} output: {result}")
+
+            passed += 1
+        except Exception as e:
+            logger.error(f"Test {idx} failed with input={input_str}, error={e}", exc_info=True)
+
+    cov.stop()
+    cov.save()
+
+    # Generate a numeric report
+    coverage_percent = cov.report(show_missing=False)
+
+    print(f"{passed}/{total} test cases passed. {coverage_percent:.1f}% line coverage achieved")
+    sys.exit((coverage_percent > .8 and passed/total > .8))
 
 
 @cli.command(short_help="Install project/runtime dependencies.")
@@ -85,7 +118,7 @@ def install():
 # Change the urls command name to make it private
 @cli.command("_urls")
 @click.argument("urls_file", required=True)
-def urls_command(urls_file: str):
+def urls_command(urls_file: str) -> dict:
     """Process a newline-delimited URL file (or '-' for stdin)."""
     p = Path(urls_file)
     if not p.exists():
@@ -113,6 +146,7 @@ def urls_command(urls_file: str):
             continue
         result: GradeResult = asyncio.run(run_metrics(url_dictionary))
         print(json.dumps(result))
+    return result
 
 if __name__ == "__main__":
     raise SystemExit(cli())
