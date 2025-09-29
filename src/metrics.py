@@ -17,7 +17,7 @@ from ramp_up_time import compute as ramp_up_time
 from bus_factor import compute as bus_factor
 from performance_claims import compute as performance_claims
 from license import compute as license
-from size_score import compute as size_score
+from size_score import compute as size
 from dataset_code_score import compute as dataset_and_code_score
 from dataset_quality import compute as dataset_quality
 from code_quality import compute as code_quality
@@ -72,46 +72,65 @@ class GradeResult(TypedDict):
     code_quality: float
     code_quality_latency: int
 
+
 # run tasks
 async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
     print(f"running all metrics {urls}")
 
-    model_url = urls.get(UrlCategory.MODEL)
-    dataset_url = urls.get(UrlCategory.DATASET)
-    code_url = urls.get(UrlCategory.CODE)
+    model_url = urls.get(UrlCategory.MODEL)['url']
+    dataset_url = urls.get(UrlCategory.DATASET) and urls.get(UrlCategory.DATASET)['url']
+    code_url = urls.get(UrlCategory.CODE) and urls.get(UrlCategory.CODE)['url']
+
+    print("URLS: ", model_url, dataset_url, code_url)
 
     # List of (metric_name, metric_func) pairs
     metric_funcs = [
-        ("responsive_maintainer", responsive_maintainer),
-        ("code_quality", code_quality),
-        ("performance_claims", performance_claims),
-        ("bus_factor", bus_factor),
-        ("size", size),
-        ("ramp_up_time", ramp_up_time),
-        ("license", license),
-        ("dataset_quality", dataset_quality),
-        ("dataset_code_score", dataset_code_score),
+        ("name", name, 0),
+        ("category", category, 0),
+        ("code_quality", code_quality, 0),
+        ("performance_claims", performance_claims, 1),
+        ("bus_factor", bus_factor, 0),
+        ("size", size, 0),
+        ("ramp_up_time", ramp_up_time, 0),
+        ("license", license, 0),
+        ("dataset_quality", dataset_quality, 0),
+        ("dataset_and_code_score", dataset_and_code_score, 0),
     ]
 
     # Build tasks and names in sync
-    task_names = [name for name, _ in metric_funcs]
-    tasks = [func(model_url, code_url, dataset_url) for _, func in metric_funcs]
+    task_names = [name for name, _, en in metric_funcs if en]
+    tasks = [func(model_url, code_url, dataset_url) for _, func, en in metric_funcs if en]
+
+    print("running tasks: ", task_names)
 
     # Run them concurrently
     results = await asyncio.gather(*tasks, return_exceptions=True)
-
     metric_scores: GradeResult = {}
 
     # Store results
-    for name, result in zip(task_names, results):
-        if isinstance(result, Exception):
-            logging.error(f"Error in metric {name}: {result}")
-            metric_scores[name] = ERROR_VALUE
-            metric_scores[f"{name}_latency"] = 0.0
+    for n, result in zip(task_names, results):
+        if n == "name" or n == "category":
+            if isinstance(result, Exception):
+                logging.error(f"Error in metric {n}: {result}")
+                metric_scores[n] = ERROR_VALUE
+            else:
+                score, latency = result
+                metric_scores[n] = score
         else:
-            score, latency = result
-            metric_scores[name] = score
-            metric_scores[f"{name}_latency"] = latency
+            if isinstance(result, Exception):
+                logging.error(f"Error in metric {n}: {result}")
+                metric_scores[n] = ERROR_VALUE
+                metric_scores[f"{n}_latency"] = 0.0
+            else:
+                score, latency = result
+                metric_scores[n] = score
+                metric_scores[f"{n}_latency"] = latency
 
-    # Wrap with required metadata for GradeResult
+    # Compute net score last
+    net_en = 0  # disabled
+    if net_en:
+        net, net_latency = net_score(metric_scores)
+        metric_scores["net_score"] = net
+        metric_scores["net_score_latency"] = net_latency
+
     return metric_scores

@@ -3,11 +3,11 @@ import openai
 from urllib.parse import urlparse
 from typing import Dict, Tuple
 import time
-
+from api_keys import open_ai_key
 
 ERROR_VALUE = -1.0
 
-async def compute (model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
     """
     Grade how well a Hugging Face model's code and dataset are documented.
     
@@ -24,7 +24,7 @@ async def compute (model_url: str, code_url: str | None, dataset_url: str | None
         model_id = model_url.replace("https://huggingface.co/", "").strip("/") #removing the huggingface part of the link to get the model id
     except Exception as e:
         print(f"Error parsing Hugging Face link: {e}") #exception if huggingface is wrong
-        return ERROR_VALUE, (time.time() - start_time) * 1000
+        return ERROR_VALUE, (int)((time.time() - start_time) * 1000)
 
     # --- Step 2: Fetch model card & datasets ---
     try:
@@ -37,7 +37,7 @@ async def compute (model_url: str, code_url: str | None, dataset_url: str | None
         datasets = data.get("datasets", [])
     except Exception as e:
         print(f"Error fetching model info: {e}")
-        return ERROR_VALUE, (time.time() - start_time) * 1000
+        return ERROR_VALUE, (int)((time.time() - start_time) * 1000)
 
     # Handle missing dataset
     dataset_text = "\n".join(datasets) if datasets else "NO DATASET PROVIDED" #if no datasets provided, return no dataset provided
@@ -70,6 +70,7 @@ async def compute (model_url: str, code_url: str | None, dataset_url: str | None
         code_texts.append("NO CODE FILES PROVIDED")
 
     # --- Step 4: Build combined evaluation text ---
+    joined = "\n\n".join(code_texts)
     combined_text = f"""
 === MODEL CARD === in case of no model card, tell no model card provided. Ideally there will be a model card if it is a valid link but private models, new/experiemntal models and minimal repos that are just weights will not hav a card
 {model_card if model_card else "NO MODEL CARD PROVIDED"} 
@@ -78,11 +79,10 @@ async def compute (model_url: str, code_url: str | None, dataset_url: str | None
 {dataset_text} 
 
 === CODE SNIPPETS ===
-{"\n\n".join(code_texts)}
-"""
+{joined}"""
 
-    if not combined_text.strip(): #if no text at all, return error
-        return ERROR_VALUE, (time.time() - start_time) * 1000
+    if not combined_text.strip():  # if no text at all, return error
+        return ERROR_VALUE, (int)((time.time() - start_time) * 1000)
 
     # --- Step 5: Prompt LLM for grading ---
     prompt = f"""
@@ -104,8 +104,8 @@ Repository content:
 \"\"\"
 """
 
-    try: #call LLM to grade documentation based off prompt, check prior documentation for explaination
-        openai.api_key = api_key
+    try:  # call LLM to grade documentation based off prompt, check prior documentation for explaination
+        openai.api_key = open_ai_key
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
@@ -113,7 +113,7 @@ Repository content:
         )
         score_text = response["choices"][0]["message"]["content"].strip()
         score = float(score_text)
-        return max(0.0, min(1.0, score)), (time.time() - start_time) * 1000  # clamp to [0,1]
+        return max(0.0, min(1.0, score)), (int)((time.time() - start_time) * 1000)  # clamp to [0,1]
     except Exception as e:
         print(f"Error grading documentation: {e}")
-        return ERROR_VALUE, (time.time() - start_time) * 1000
+        return ERROR_VALUE, (int)((time.time() - start_time) * 1000)

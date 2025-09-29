@@ -3,7 +3,7 @@ import time
 
 ERROR_VALUE = {"raspberry_pi": 0.0, "jetson_nano": 0.0, "desktop_pc": 0.0, "aws_server": 0.0}
 
-async def compute(payload: dict) -> tuple:
+async def compute(payload: dict) -> tuple[float, int]:
     """
     Compute hardware compatibility scores for a Hugging Face model link.
     
@@ -56,8 +56,8 @@ async def compute(payload: dict) -> tuple:
                 score = max(0.0, 1.0 - (model_size_gb / limit))
             scores[device] = round(score, 2)
         
-        return scores, (time.time() - start_time) * 1000
+        return scores, (int)((time.time() - start_time) * 1000)
 
     except Exception as e:
         print(f"Error: {e}")
-        return ERROR_VALUE, (time.time() - start_time) * 1000
+        return ERROR_VALUE, (int)((time.time() - start_time) * 1000)

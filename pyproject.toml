@@ -28,9 +28,11 @@ dependencies = [
     # We imported torch
     "torch>=2.3.0",
 
-    # "openai>=0.27.8,<1.0.0",
-    "aiohttp>=3.9,<4.0"
+    "aiohttp>=3.9,<4.0",
+    
+    "openai>=1.109.1", # Moved from main dependencies
 
+    "GitPython>=3.1.36",
 ]
 
 [project.optional-dependencies]
@@ -45,7 +47,7 @@ dev = [
     "mypy>=1.10.0",
     "types-requests>=2.32.0.20240903",
 
-    "ruff>=0.6.0", # May be useful for us
+    "ruff>=0.6.0", # May be useful for us,
 
 
 ]

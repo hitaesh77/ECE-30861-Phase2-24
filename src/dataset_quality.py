@@ -2,8 +2,9 @@
 
 import time
 from huggingface_hub import HfApi
+from typing import Tuple
 
-def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
+async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[float, int]:
     """
     Lightweight dataset quality score using Hugging Face Hub metadata.
     """
@@ -30,6 +31,6 @@ def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
     has_files = bool(info.siblings)
     
     score = sum([has_description, has_license, has_files]) / 3
-    latency_ms = (time.time() - startTime) * 1000
+    latency_ms = (int)((time.time() - startTime) * 1000)
     
     return score, latency_ms

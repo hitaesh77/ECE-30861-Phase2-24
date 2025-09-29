@@ -5,7 +5,7 @@ from typing import Tuple
 
 ERROR_VALUE = -1.0
 
-async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, float]:
+async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
     """
     Calculates the bus factor (robustness to ablation) for a Hugging Face model.
     Returns (score, latency_ms).
@@ -86,6 +86,6 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
     score = sum(robustness_scores) / len(robustness_scores)
 
     # Stop timing and calculate latency in ms
-    latency_ms = (time.time() - start_time) * 1000
+    latency_ms = (int)((time.time() - start_time) * 1000)
 
     return score, latency_ms

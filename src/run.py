@@ -97,18 +97,21 @@ def urls_command(urls_file: str):
     click.echo(f"Read {len(lines)} lines from {source}. (grading stub)")
     
     for line in lines:
-        click.echo(f"Processing line: {line}")
+        # click.echo(f"Processing line: {line}")
         url_dictionary = {}
         for url in line.split(","):
             
             if url is None or url.strip() == "":
                 # click.echo("Skipping empty URL.")
                 continue
-            click.echo(f"Classifying URL: {url}")
+            # click.echo(f"Classifying URL: {url}")
             category, provider, ids = classify_url(url)
-            click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
+            # click.echo(f"URL: {url}\n  Category: {category}, Provider: {provider}, IDs: {ids}")
             url_dictionary[category] = ids
         
+        if url_dictionary.get(UrlCategory.MODEL) is None:
+            click.echo("Error: No MODEL URL found, skipping line.", err=True)
+            continue
         result: GradeResult = asyncio.run(run_metrics(url_dictionary))
         print(json.dumps(result))
 
