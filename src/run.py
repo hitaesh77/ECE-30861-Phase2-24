@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # run.py
-import sys, click, asyncio, json, subprocess
+import sys, click, asyncio, json, subprocess, logging
 from pathlib import Path
 from enum import Enum
 from typing import TypedDict, Literal, Dict, Tuple
@@ -55,7 +55,7 @@ def test(min_coverage: int):
     # Minimal placeholder
     passed = True
     coverage = 100
-    click.echo(f"X/Y test cases passed. {coverage}% line coverage achieved.")
+    print(f"X/Y test cases passed. {coverage}% line coverage achieved.")
     sys.exit(0 if (passed and coverage >= min_coverage) else 1)
 
 
@@ -67,19 +67,19 @@ def install():
         root_dir = Path(__file__).parent.parent
         
         # Update pip first
-        click.echo("Updating pip...")
+        logging.info("Updating pip...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
         
         # Install dependencies from project root
-        click.echo("Installing dependencies...")
+        logging.info("Installing project dependencies...")
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-e", "."],
             cwd=str(root_dir)
         )
-        click.echo("Installation completed successfully!")
+        logging.info("Installation completed successfully!")
         return 0
     except subprocess.CalledProcessError as e:
-        click.echo(f"Error installing dependencies: {e}", err=True)
+        logging.error(f"Error installing dependencies: {e}")
         return 1
 
 
@@ -90,11 +90,11 @@ def urls_command(urls_file: str):
     """Process a newline-delimited URL file (or '-' for stdin)."""
     p = Path(urls_file)
     if not p.exists():
-        click.echo(f"Error: file not found: {p}", err=True)
+        logging.error(f"Error: file not found: {p}")
         sys.exit(1)
     lines = [ln.strip() for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()]
     source = str(p)
-    click.echo(f"Read {len(lines)} lines from {source}. (grading stub)")
+    logging.info(f"Read {len(lines)} lines from {source}. (grading stub)")
     
     for line in lines:
         # click.echo(f"Processing line: {line}")
@@ -110,7 +110,7 @@ def urls_command(urls_file: str):
             url_dictionary[category] = ids
         
         if url_dictionary.get(UrlCategory.MODEL) is None:
-            click.echo("Error: No MODEL URL found, skipping line.", err=True)
+            logging.error("Error: No MODEL URL found, skipping line.")
             continue
         result: GradeResult = asyncio.run(run_metrics(url_dictionary))
         print(json.dumps(result))
