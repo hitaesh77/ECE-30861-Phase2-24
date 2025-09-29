@@ -3,7 +3,7 @@ import openai
 from urllib.parse import urlparse
 from typing import Dict, Tuple
 import time
-from api_keys import open_ai_key
+import os
 
 ERROR_VALUE = -1.0
 
@@ -105,9 +105,11 @@ Repository content:
 """
 
     try:  # call LLM to grade documentation based off prompt, check prior documentation for explaination
-        openai.api_key = open_ai_key
+        openai.api_key = os.getenv("GEN_AI_STUDIO_API_KEY")
+        openai.api_base = "https://genai.rcac.purdue.edu/api"
+
         response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
+            model= "llama3.1:latest",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0
         )

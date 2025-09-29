@@ -3,6 +3,7 @@ import requests
 import openai
 from urllib.parse import urlparse
 from typing import Tuple
+import os
 
 ERROR_VALUE = -1.0
 
@@ -61,9 +62,11 @@ Model card content:
 """
     # Step 3: Call secondary LLM
     try:
-        openai.api_key = open_ai_key #set api key for openai
+        openai.api_key = os.getenv("GEN_AI_STUDIO_API_KEY") #set api key for openai
+        openai.api_base = "https://genai.rcac.purdue.edu/api"
+        
         response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",  # desired model endpoint for grading
+            model= "llama3.1:latest",  # desired model endpoint for grading
             messages=[{"role": "user", "content": prompt}], #formatting prompt for LLM model
             temperature=0.0 #temperature 0.0 for deterministic output
         )
