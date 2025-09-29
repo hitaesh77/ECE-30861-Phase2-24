@@ -3,6 +3,7 @@ import requests
 import openai
 from urllib.parse import urlparse
 from typing import Tuple
+from api_keys import open_ai_key
 
 ERROR_VALUE = -1.0
 
@@ -61,7 +62,7 @@ Model card content:
 """
     # Step 3: Call secondary LLM
     try:
-        openai.api_key = api_key #set api key for openai
+        openai.api_key = open_ai_key #set api key for openai
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",  # desired model endpoint for grading
             messages=[{"role": "user", "content": prompt}], #formatting prompt for LLM model

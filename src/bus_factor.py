@@ -24,7 +24,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
         return ERROR_VALUE, (time.time() - start_time) * 1000  # return error value and 0 ms latency
 
     # Default prompts if none provided
-    if eval_prompts is None: #tehnically eval prompts will always be none however fucnitonality exists in case spesific eval prompts would like to be used
+    if eval_prompts is None: #technically eval prompts will always be none however fucnitonality exists in case spesific eval prompts would like to be used
         eval_prompts = [
             "The capital of France is",
             "The chemical symbol for water is",
