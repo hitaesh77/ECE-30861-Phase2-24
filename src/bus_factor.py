@@ -2,8 +2,20 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
 import time
 from typing import Tuple
+from urllib.parse import urlparse
 
 ERROR_VALUE = -1.0
+
+def normalize_model_url(model_url: str) -> str:
+    """
+    Hugging Face model identifiers should be in the form
+    'namespace/model_name' (not full URLs).
+    """
+    if model_url.startswith("http"):
+        # Example: https://huggingface.co/google-bert/bert-base-uncased
+        path = urlparse(model_url).path.strip("/")  # -> google-bert/bert-base-uncased
+        return path
+    return model_url
 
 async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
     """
@@ -13,29 +25,27 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
 
     # Start timing
     start_time = time.time()
-
+    model_id = normalize_model_url(model_url)
     # Try to load the model + tokenizer
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_url) #need tokenizer to convert text to language LLM can understand. using huggingface tokenizer
-        model = AutoModelForCausalLM.from_pretrained(model_url)  #loading model from huggingface for analysis
+        tokenizer = AutoTokenizer.from_pretrained(model_id) #need tokenizer to convert text to language LLM can understand. using huggingface tokenizer
+        model = AutoModelForCausalLM.from_pretrained(model_id)  #loading model from huggingface for analysis
         model.eval()
     except Exception as e:
-        #print(f"[Error] Could not load model: {e}") //log file will print to stdout
-        return ERROR_VALUE, (time.time() - start_time) * 1000  # return error value and 0 ms latency
+        print(f"[Error] Could not load model: {e} ") # log file will print to stdout
+        return ERROR_VALUE, ((time.time() - start_time) * 1000)  # return error value and 0 ms latency
 
     # Default prompts if none provided
-    if eval_prompts is None: #technically eval prompts will always be none however fucnitonality exists in case spesific eval prompts would like to be used
-        eval_prompts = [
-            "The capital of France is",
-            "The chemical symbol for water is",
-            "The largest planet in our solar system is",
-            "The author of '1984' is",
-            "The square root of 16 is"
-        ]
+    eval_prompts = [
+    "The capital of France is",
+        "The chemical symbol for water is",
+        "The largest planet in our solar system is",
+        "The author of '1984' is",
+        "The square root of 16 is"
+    ]
 
     # Default answers
-    if eval_answers is None:
-        eval_answers = ["Paris", "H2O", "Jupiter", "George Orwell", "4"]
+    eval_answers = ["Paris", "H2O", "Jupiter", "George Orwell", "4"]
 
     # Pick CPU or GPU | Not sure if this is needed for the scope of this project
     device = "cuda" if torch.cuda.is_available() else "cpu" #if a GPU is available, use it, if not use CPU
