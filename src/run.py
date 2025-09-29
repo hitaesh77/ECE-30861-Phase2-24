@@ -5,6 +5,7 @@ from pathlib import Path
 from enum import Enum
 from typing import TypedDict, Literal, Dict, Tuple
 from metrics import run_metrics, GradeResult, UrlCategory, Provider
+from testbench import run_tests
 # ---- Domain: URL Classification -----
 
 
