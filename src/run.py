@@ -54,10 +54,8 @@ def cli(ctx):
 @click.option("--min-coverage", type=int, default=80, show_default=True, help="Minimum coverage to pass.")
 def test(min_coverage: int):
     # Minimal placeholder
-    passed = True
-    coverage = 100
-    print(f"X/Y test cases passed. {coverage}% line coverage achieved.")
-    sys.exit(0 if (passed and coverage >= min_coverage) else 1)
+    retval = run_tests()
+    sys.exit(retval)
 
 
 @cli.command(short_help="Install project/runtime dependencies.")

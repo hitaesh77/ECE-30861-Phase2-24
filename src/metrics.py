@@ -85,16 +85,16 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
 
     # List of (metric_name, metric_func) pairs
     metric_funcs = [
-        ("name", name, 0),
-        ("category", category, 0),
-        ("code_quality", code_quality, 0),
-        ("performance_claims", performance_claims, 0),
-        ("bus_factor", bus_factor, 0),
-        ("size", size, 0),
+        ("name", name, 1),
+        ("category", category, 1),
+        ("code_quality", code_quality, 1),
+        ("performance_claims", performance_claims, 1),
+        ("bus_factor", bus_factor, 1),
+        ("size", size, 1),
         ("ramp_up_time", ramp_up_time, 1),
-        ("license", license, 0),
-        ("dataset_quality", dataset_quality, 0),
-        ("dataset_and_code_score", dataset_and_code_score, 0),
+        ("license", license, 1),
+        ("dataset_quality", dataset_quality, 1),
+        ("dataset_and_code_score", dataset_and_code_score, 1),
     ]
 
     # Build tasks and names in sync
