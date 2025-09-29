@@ -88,4 +88,4 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
     # Stop timing and calculate latency in ms
     latency_ms = (int)((time.time() - start_time) * 1000)
 
-    return score, latency_ms
+    return round(score, 2), round(latency_ms)
