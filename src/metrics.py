@@ -127,7 +127,7 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
                 metric_scores[f"{n}_latency"] = latency
 
     # Compute net score last
-    net_en = 0  # disabled
+    net_en = 1  # enabled
     if net_en:
         net, net_latency = net_score(metric_scores)
         metric_scores["net_score"] = net
