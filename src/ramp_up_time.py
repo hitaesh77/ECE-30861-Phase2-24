@@ -94,7 +94,7 @@ Model card content:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0
         )
-        score_text = response["choices"][0]["message"]["content"].strip() #response is the dict provided by openai, of choices choose the first one, grab the message -> content that is returned and strip extra whitespace
+        score_text = response.choices[0].message.content.strip() #response is the dict provided by openai, of choices choose the first one, grab the message -> content that is returned and strip extra whitespace
         score = float(score_text) #convert score to float
         score = max(0.0, min(1.0, score))  # clamp to [0.0, 1.0] in the case where the LLM returns a value outside this range
         return score, (time.time() - start_time) * 1000
