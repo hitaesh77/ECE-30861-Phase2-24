@@ -1,11 +1,26 @@
 import requests
-import openai
+from openai import OpenAI
 from urllib.parse import urlparse
 from typing import Dict, Tuple
 import time
 import os
+import re
 
 ERROR_VALUE = -1.0
+
+
+
+def extract_score(text: str) -> float:
+    """
+    Extracts the first floating-point number from the LLM's output.
+    Clamps it to [0.0, 1.0].
+    """
+    match = re.search(r"\d*\.?\d+", text)  # regex to find first number like 0.8
+    if not match:
+        raise ValueError(f"No valid float found in: {text}")
+    score = float(match.group())
+    return max(0.0, min(1.0, score))
+
 
 async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
     """
@@ -105,17 +120,21 @@ Repository content:
 """
 
     try:  # call LLM to grade documentation based off prompt, check prior documentation for explaination
-        openai.api_key = os.getenv("GEN_AI_STUDIO_API_KEY")
-        openai.api_base = "https://genai.rcac.purdue.edu/api"
+        client = OpenAI(
+        api_key=os.getenv("GEN_AI_STUDIO_API_KEY"), 
+        base_url="https://genai.rcac.purdue.edu/api"
+        )
 
-        response = openai.ChatCompletion.create(
-            model= "llama3.1:latest",
+        response = client.chat.completions.create(
+            model="llama3.1:latest",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0
         )
-        score_text = response["choices"][0]["message"]["content"].strip()
-        score = float(score_text)
-        return max(0.0, min(1.0, score)), (int)((time.time() - start_time) * 1000)  # clamp to [0,1]
+
+        score_text = response.choices[0].message.content.strip()
+        score = extract_score(score_text)
+        latency_ms = int((time.time() - start_time) * 1000)
+        return score, latency_ms
     except Exception as e:
         print(f"Error grading documentation: {e}")
         return ERROR_VALUE, (int)((time.time() - start_time) * 1000)

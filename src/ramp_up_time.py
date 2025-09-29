@@ -1,6 +1,6 @@
 import time  
 import requests
-import openai
+from openai import OpenAI
 from urllib.parse import urlparse
 from typing import Tuple
 import os
@@ -26,6 +26,7 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
         parsed = urlparse(model_url) #parsing the url using urlparse from urllib.parse
         path_parts = parsed.path.strip("/").split("/") #splititing up url to get huggingface Key
         if len(path_parts) == 0: #if no path parts, return error
+            print("No path parts")
             return ERROR_VALUE, (int)((time.time() - start_time) * 1000)
         model_id = "/".join(path_parts)  # handles cases like "username/modelname"
     except Exception as e: #exception handling and error message
@@ -35,13 +36,34 @@ async def compute(model_url: str, code_url: str | None, dataset_url: str | None)
     # Step 1: Fetch model card
     url = f"https://huggingface.co/api/models/{model_id}" #
     try:
-        resp = requests.get(url) #fetching the model card from huggingface api
-        resp.raise_for_status() #checks if the URL is a valid url if not an exception will be raise
-        data = resp.json() #converting response to json
-        card_text = data.get("cardData", {}).get("content", "") #parsing neccessary information from json
+        resp = requests.get(url)
+        resp.raise_for_status()
+        data = resp.json()
         
-        if not card_text.strip(): #if not card text
-            return ERROR_VALUE, (int)((time.time() - start_time) * 1000) #return error value
+        # Try multiple places for the card text
+        card_text = ""
+
+        # 1. Check if "cardData" exists
+        if "cardData" in data:
+            cd = data["cardData"]
+            if isinstance(cd, dict):
+                # Newer models: might have "content" or "text"
+                card_text = cd.get("content") or cd.get("text") or ""
+            elif isinstance(cd, str):
+                # Legacy models: cardData is a raw markdown string
+                card_text = cd
+        
+        # 2. If still empty, try README.md directly
+        if not card_text.strip():
+            readme_url = f"https://huggingface.co/{model_id}/raw/main/README.md"
+            readme_resp = requests.get(readme_url)
+            if readme_resp.status_code == 200:
+                card_text = readme_resp.text
+        
+        # 3. If STILL empty, return error
+        if not card_text.strip():
+            print("No model card text found.")
+            return ERROR_VALUE, int((time.time() - start_time) * 1000)
     except Exception as e: #exception handling and error message
         print(f"Error fetching model card: {e}")
         return ERROR_VALUE, (int)((time.time() - start_time) * 1000)
@@ -62,13 +84,15 @@ Model card content:
 """
     # Step 3: Call secondary LLM
     try:
-        openai.api_key = os.getenv("GEN_AI_STUDIO_API_KEY") #set api key for openai
-        openai.api_base = "https://genai.rcac.purdue.edu/api"
-        
-        response = openai.ChatCompletion.create(
-            model= "llama3.1:latest",  # desired model endpoint for grading
-            messages=[{"role": "user", "content": prompt}], #formatting prompt for LLM model
-            temperature=0.0 #temperature 0.0 for deterministic output
+        client = OpenAI(
+        api_key=os.getenv("GEN_AI_STUDIO_API_KEY"), 
+        base_url="https://genai.rcac.purdue.edu/api"
+        )
+
+        response = client.chat.completions.create(
+            model="llama3.1:latest",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0
         )
         score_text = response["choices"][0]["message"]["content"].strip() #response is the dict provided by openai, of choices choose the first one, grab the message -> content that is returned and strip extra whitespace
         score = float(score_text) #convert score to float
