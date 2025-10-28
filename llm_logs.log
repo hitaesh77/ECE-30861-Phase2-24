@@ -1,4 +1,4 @@
-2025-10-28 09:03:20,233 - INFO - Processing URLs from file: url_file.txt
-2025-10-28 09:03:20,806 - INFO - Read 1 lines from url_file.txt. (grading stub)
-2025-10-28 09:03:20,811 - INFO - Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\code_quality_adt8se86\repo
-2025-10-28 09:03:21,839 - INFO - [performance_claims] Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\perf_claims_wu6l38sf\repo
+2025-10-28 12:52:55,965 - INFO - Processing URLs from file: single_url.txt
+2025-10-28 12:52:56,454 - INFO - Read 1 lines from single_url.txt. (grading stub)
+2025-10-28 12:52:56,454 - INFO - Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\code_quality_lrz6o1qz\repo
+2025-10-28 12:52:57,465 - INFO - [performance_claims] Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\perf_claims_9kikdzrt\repo
