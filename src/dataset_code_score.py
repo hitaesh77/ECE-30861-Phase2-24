@@ -1,5 +1,4 @@
 import requests
-from openai import OpenAI
 from urllib.parse import urlparse
 from typing import Dict, Tuple
 import time
