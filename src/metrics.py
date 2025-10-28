@@ -1,8 +1,3 @@
-# from transformers import AutoModelForCausalLM, AutoTokenizer
-# import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
-# import time
-# import requests
-# import openai
 import asyncio
 from urllib.parse import urlparse
 import logging
@@ -29,6 +24,7 @@ class UrlCategory(str, Enum):
     MODEL = "MODEL"
     DATASET = "DATASET"
     CODE = "CODE"
+    OTHER = "OTHER"
 
 
 # Optional: if you want to branch logic later
@@ -75,13 +71,10 @@ class GradeResult(TypedDict):
 
 # run tasks
 async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
-    print(f"running all metrics {urls}")
 
     model_url = urls.get(UrlCategory.MODEL)['url']
     dataset_url = urls.get(UrlCategory.DATASET) and urls.get(UrlCategory.DATASET)['url']
     code_url = urls.get(UrlCategory.CODE) and urls.get(UrlCategory.CODE)['url']
-
-    print("URLS: ", model_url, dataset_url, code_url)
 
     # List of (metric_name, metric_func) pairs
     metric_funcs = [
@@ -100,8 +93,6 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
     # Build tasks and names in sync
     task_names = [name for name, _, en in metric_funcs if en]
     tasks = [func(model_url, code_url, dataset_url) for _, func, en in metric_funcs if en]
-
-    print("running tasks: ", task_names)
 
     # Run them concurrently
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -133,4 +124,36 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
         metric_scores["net_score"] = net
         metric_scores["net_score_latency"] = net_latency
 
-    return metric_scores
+    final_ordered_scores: GradeResult = {}
+    
+    # 1. Name and Category
+    final_ordered_scores["name"] = metric_scores.get("name")
+    final_ordered_scores["category"] = metric_scores.get("category")
+
+    # 2. Net Score (REQUIRED POSITION)
+    final_ordered_scores["net_score"] = metric_scores.get("net_score")
+    final_ordered_scores["net_score_latency"] = metric_scores.get("net_score_latency")
+
+    # 3. The Rest of the Scores (following GradeResult TypedDict order)
+    final_ordered_scores["ramp_up_time"] = metric_scores.get("ramp_up_time")
+    final_ordered_scores["ramp_up_time_latency"] = metric_scores.get("ramp_up_time_latency")
+    final_ordered_scores["bus_factor"] = metric_scores.get("bus_factor")
+    final_ordered_scores["bus_factor_latency"] = metric_scores.get("bus_factor_latency")
+    final_ordered_scores["performance_claims"] = metric_scores.get("performance_claims")
+    final_ordered_scores["performance_claims_latency"] = metric_scores.get("performance_claims_latency")
+    final_ordered_scores["license"] = metric_scores.get("license")
+    final_ordered_scores["license_latency"] = metric_scores.get("license_latency")
+    
+    final_ordered_scores["size_score"] = metric_scores.get("size_score")
+    final_ordered_scores["size_score_latency"] = metric_scores.get("size_score_latency")
+    
+    final_ordered_scores["dataset_and_code_score"] = metric_scores.get("dataset_and_code_score")
+    final_ordered_scores["dataset_and_code_score_latency"] = metric_scores.get("dataset_and_code_score_latency")
+    final_ordered_scores["dataset_quality"] = metric_scores.get("dataset_quality")
+    final_ordered_scores["dataset_quality_latency"] = metric_scores.get("dataset_quality_latency")
+    final_ordered_scores["code_quality"] = metric_scores.get("code_quality")
+    final_ordered_scores["code_quality_latency"] = metric_scores.get("code_quality_latency")
+
+    # The final dictionary 'final_ordered_scores' now has the keys inserted 
+    # in the desired order, satisfying the requirement.
+    return final_ordered_scores
