@@ -38,7 +38,7 @@ logger = setup_logger()
 
 # --- Ingest: URL parsing & classification ---
 def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
-    from metrics import UrlCategory, Provider
+    from src.metrics import UrlCategory, Provider
     """Return (category, provider, ids) for a URL string. Improved dataset detection."""
     s = raw.strip()
     if not s:
@@ -72,7 +72,7 @@ def read_enter_delimited_file(filename: str) -> list[str]:
 def urls_processor(urls_file: str) -> Dict:
     """Process a newline-delimited URL file."""
 
-    from metrics import run_metrics, GradeResult, UrlCategory, Provider
+    from src.metrics import run_metrics, GradeResult, UrlCategory, Provider
 
     p = Path(urls_file)
     if not p.exists():

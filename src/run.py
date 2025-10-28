@@ -6,7 +6,7 @@ import sys, click, asyncio, json, subprocess, logging
 from pathlib import Path
 from enum import Enum
 from typing import TypedDict, Literal, Dict, Tuple
-from metrics import run_metrics, GradeResult, UrlCategory, Provider
+from src.metrics import run_metrics, GradeResult, UrlCategory, Provider
 from test import setup_logger
 # ---- Domain: URL Classification -----
 
