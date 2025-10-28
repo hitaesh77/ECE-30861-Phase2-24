@@ -1,12 +1,12 @@
 # name.py
 import time
 from urllib.parse import urlparse
-from typing import Tuple
+from typing import Optional, Tuple
 
 # path segments that indicate we've gone past the repo id into files/views
 _RESERVED = {"resolve", "blob", "tree", "commit", "commits", "discussions", "revision", "files"}
 
-async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[str, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Returns the model name from a Hugging Face model URL.
     """

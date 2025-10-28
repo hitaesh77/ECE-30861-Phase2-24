@@ -1,8 +1,7 @@
 # metrics/size_score.py
 import time
 import logging
-import requests
-from typing import Tuple, Dict
+from typing import Optional, Tuple, Dict
 
 # Default score if metric fails
 ERROR_VALUE: Dict[str, float] = {
@@ -30,6 +29,9 @@ def _estimate_model_size_gb(model_url: str) -> float:
     2. Fallback: heuristic guesses based on model name keywords.
     3. Default to ~5 GB if nothing found.
     """
+    
+    import requests
+
     # --- API attempt ---
     try:
         model_id = model_url.rstrip("/").split("huggingface.co/")[-1]
@@ -60,9 +62,7 @@ def _estimate_model_size_gb(model_url: str) -> float:
     return 5.0
 
 
-async def compute(
-    model_url: str | None, code_url: str | None, dataset_url: str | None
-) -> Tuple[Dict[str, float], int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Compute hardware compatibility (size_score) for a model.
 
