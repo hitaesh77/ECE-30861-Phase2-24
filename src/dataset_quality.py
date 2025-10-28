@@ -1,13 +1,14 @@
 # dataset_quality.py
-
 import time
-from huggingface_hub import HfApi
-from typing import Tuple
+from typing import Optional, Tuple
 
-async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[float, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Lightweight dataset quality score using Hugging Face Hub metadata.
     """
+
+    from huggingface_hub import HfApi
+    
     startTime = time.time()
 
     if not dataset_url or "huggingface.co/datasets" not in dataset_url:

@@ -1,12 +1,11 @@
 # metrics/performance_claims.py
-import asyncio
 import time
 import logging
 import re
 import tempfile
 import shutil
 from pathlib import Path
-import git  # GitPython
+from typing import Optional, Tuple
 
 # A list of keywords/phrases we’ll scan for in repo text
 BENCHMARK_KEYWORDS = [
@@ -15,13 +14,16 @@ BENCHMARK_KEYWORDS = [
     "imagenet", "cifar", "glue", "squad", "msmarco", "wikitext", "mt-bench"
 ]
 
-async def compute(model_url: str | None, code_url: str | None, dataset_url: str | None) -> tuple[float, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Heuristic metric: detect performance/benchmark claims in a repo.
     Score = fraction of benchmark keywords found, capped at 1.0.
     
     Returns: (score ∈ [0,1], latency_ms)
     """
+
+    import git  # GitPython
+
     start = time.perf_counter()
 
     if not code_url or "github.com" not in code_url:

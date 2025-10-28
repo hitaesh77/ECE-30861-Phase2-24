@@ -15,7 +15,7 @@ def setup_logger():
     log_level = int(os.getenv("LOG_LEVEL", "1"))  # default to INFO
 
     if log_level == 0:
-        level = logging.CRITICAL + 1  # silence
+        level = logging.disable(logging.CRITICAL + 1)  # silence
     elif log_level == 1:
         level = logging.INFO
     elif log_level == 2:
@@ -72,7 +72,8 @@ def read_enter_delimited_file(filename: str) -> list[str]:
 def urls_processor(urls_file: str) -> Dict:
     """Process a newline-delimited URL file."""
 
-    from src.metrics import run_metrics, GradeResult, UrlCategory, Provider
+    # Note: run_metrics, GradeResult, UrlCategory, Provider are imported at the top now
+    from metrics import run_metrics, GradeResult, UrlCategory, Provider
 
     p = Path(urls_file)
     if not p.exists():
@@ -101,17 +102,16 @@ def urls_processor(urls_file: str) -> Dict:
             logger.error("Error: No MODEL URL found in line, skipping.")
             continue
             
-        # The original code's `run_metrics` is an async function
-        # We need an event loop to run it.
         try:
             result = asyncio.run(run_metrics(url_dictionary))
-            print(json.dumps(result)) # Output to stdout as required
+            # Guaranteed NDJSON output: explicitly write to stdout with a newline
+            # sys.stdout.write(json.dumps(result) + '\n') 
+            sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n') 
             last_result = result
         except Exception as e:
             logger.error(f"Error running metrics for line '{line}': {e}", exc_info=True)
 
-    return last_result # Return the last result processed (as per original `urls_command` return type)
-
+    return last_result
 
 def run_test(min_coverage: int = 80) -> bool:
     import coverage
