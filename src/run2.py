@@ -72,6 +72,7 @@ def read_enter_delimited_file(filename: str) -> list[str]:
 def urls_processor(urls_file: str) -> Dict:
     """Process a newline-delimited URL file."""
 
+    # Note: run_metrics, GradeResult, UrlCategory, Provider are imported at the top now
     from metrics import run_metrics, GradeResult, UrlCategory, Provider
 
     p = Path(urls_file)
@@ -101,16 +102,59 @@ def urls_processor(urls_file: str) -> Dict:
             logger.error("Error: No MODEL URL found in line, skipping.")
             continue
             
-        # The original code's `run_metrics` is an async function
-        # We need an event loop to run it.
         try:
             result = asyncio.run(run_metrics(url_dictionary))
-            print(json.dumps(result)) # Output to stdout as required
+            # Guaranteed NDJSON output: explicitly write to stdout with a newline
+            # sys.stdout.write(json.dumps(result) + '\n') 
+            sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n') 
             last_result = result
         except Exception as e:
             logger.error(f"Error running metrics for line '{line}': {e}", exc_info=True)
 
-    return last_result # Return the last result processed (as per original `urls_command` return type)
+    return last_result
+
+# def urls_processor(urls_file: str) -> Dict:
+#     """Process a newline-delimited URL file."""
+
+#     from metrics import run_metrics, GradeResult, UrlCategory, Provider
+
+#     p = Path(urls_file)
+#     if not p.exists():
+#         logger.error(f"Error: file not found: {p}")
+#         sys.exit(1)
+        
+#     lines = read_enter_delimited_file(urls_file)
+#     source = str(p)
+#     logger.info(f"Read {len(lines)} lines from {source}. (grading stub)")
+
+#     last_result = {}
+    
+#     for line in lines:
+#         url_dictionary = {}
+#         # Allows for multiple comma-separated URLs on one line, treating them all as part of one "repo group"
+#         for url in line.split(","):
+#             url = url.strip()
+#             if not url:
+#                 continue
+            
+#             category, provider, ids = classify_url(url)
+#             # Store the info for this group
+#             url_dictionary[category] = ids
+        
+#         if not url_dictionary.get(UrlCategory.MODEL):
+#             logger.error("Error: No MODEL URL found in line, skipping.")
+#             continue
+            
+#         # The original code's `run_metrics` is an async function
+#         # We need an event loop to run it.
+#         try:
+#             result = asyncio.run(run_metrics(url_dictionary))
+#             print(json.dumps(result)) # Output to stdout as required
+#             last_result = result
+#         except Exception as e:
+#             logger.error(f"Error running metrics for line '{line}': {e}", exc_info=True)
+
+#     return last_result # Return the last result processed (as per original `urls_command` return type)
 
 
 def run_test(min_coverage: int = 80) -> bool:
