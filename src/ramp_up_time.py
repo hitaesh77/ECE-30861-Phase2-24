@@ -1,12 +1,12 @@
 import time  
 import requests
 from urllib.parse import urlparse
-from typing import Tuple
+from typing import Optional, Tuple
 import os
 
 ERROR_VALUE = -1.0
 
-async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Fetch a Hugging Face model card from a full link and grade its informational value.
     
