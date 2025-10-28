@@ -4,3 +4,5 @@ GitPython
 asyncio
 requests
 pytest
+transformers
+torch

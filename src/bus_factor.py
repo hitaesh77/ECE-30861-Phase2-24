@@ -1,5 +1,5 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
+# from transformers import AutoModelForCausalLM, AutoTokenizer
+# import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
 import time
 from typing import Tuple
 from urllib.parse import urlparse
