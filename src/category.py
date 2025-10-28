@@ -1,9 +1,9 @@
 # category.py
 
 import time
-from typing import Tuple
+from typing import Optional, Tuple
 
-async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[str, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Returns the category of model.
     """

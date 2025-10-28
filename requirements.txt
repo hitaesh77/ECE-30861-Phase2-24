@@ -6,3 +6,4 @@ requests
 pytest
 transformers
 torch
+huggingface_hub

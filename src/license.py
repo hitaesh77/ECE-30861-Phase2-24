@@ -1,11 +1,11 @@
 import requests
 import time  
-from typing import Tuple
+from typing import Optional, Tuple
 
 ERROR_VALUE = -1.0  # global fallback value
 
 
-async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Compute a license score for a Hugging Face model.
 

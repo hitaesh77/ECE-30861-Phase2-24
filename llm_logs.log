@@ -1,4 +1,44 @@
-2025-10-28 12:52:55,965 - INFO - Processing URLs from file: single_url.txt
-2025-10-28 12:52:56,454 - INFO - Read 1 lines from single_url.txt. (grading stub)
-2025-10-28 12:52:56,454 - INFO - Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\code_quality_lrz6o1qz\repo
-2025-10-28 12:52:57,465 - INFO - [performance_claims] Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\perf_claims_9kikdzrt\repo
+2025-10-28 13:32:26,948 - INFO - Processing URLs from file: many_urls.txt
+2025-10-28 13:32:27,302 - INFO - Read 3 lines from many_urls.txt. (grading stub)
+2025-10-28 13:32:27,447 - INFO - Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\code_quality_jdrgpxp4\repo
+2025-10-28 13:32:28,442 - INFO - [performance_claims] Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\perf_claims_gdi1g7fj\repo
+2025-10-28 13:32:30,781 - WARNING - No valid code_url provided, defaulting code_quality=0.0
+2025-10-28 13:32:30,781 - WARNING - No valid code_url provided, defaulting performance_claims=0.0
+2025-10-28 13:32:31,640 - ERROR - Error running metrics for line ',,https://huggingface.co/parvk11/audience_classifier_model': cannot unpack non-iterable float object
+Traceback (most recent call last):
+  File "C:\Users\hitae\OneDrive\Documents\GitHub\ECE-30861-Phase2-24\src\run2.py", line 106, in urls_processor
+    result = asyncio.run(run_metrics(url_dictionary))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\hitae\OneDrive\Documents\GitHub\ECE-30861-Phase2-24\src\metrics.py", line 99, in run_metrics
+    score, latency = result
+    ^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable float object
+2025-10-28 13:32:31,645 - WARNING - No valid code_url provided, defaulting code_quality=0.0
+2025-10-28 13:32:31,645 - WARNING - No valid code_url provided, defaulting performance_claims=0.0
+2025-10-28 13:32:32,604 - ERROR - Error running metrics for line ',,https://huggingface.co/openai/whisper-tiny/tree/main': cannot unpack non-iterable float object
+Traceback (most recent call last):
+  File "C:\Users\hitae\OneDrive\Documents\GitHub\ECE-30861-Phase2-24\src\run2.py", line 106, in urls_processor
+    result = asyncio.run(run_metrics(url_dictionary))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\hitae\OneDrive\Documents\GitHub\ECE-30861-Phase2-24\src\metrics.py", line 99, in run_metrics
+    score, latency = result
+    ^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable float object
