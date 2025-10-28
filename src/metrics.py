@@ -2,7 +2,7 @@ import asyncio
 from urllib.parse import urlparse
 import logging
 from typing import Dict, TypedDict, Literal
-from enum import Enum
+from utils import UrlCategory, Provider
 
 # Metric function imports
 from name import compute as name
@@ -12,29 +12,12 @@ from ramp_up_time import compute as ramp_up_time
 from bus_factor import compute as bus_factor
 from performance_claims import compute as performance_claims
 from license import compute as license
-from size_score import compute as size
+from size_score import compute as size_score
 from dataset_code_score import compute as dataset_and_code_score
 from dataset_quality import compute as dataset_quality
 from code_quality import compute as code_quality
 
 ERROR_VALUE = -1.0
-
-
-class UrlCategory(str, Enum):
-    MODEL = "MODEL"
-    DATASET = "DATASET"
-    CODE = "CODE"
-    OTHER = "OTHER"
-
-
-# Optional: if you want to branch logic later
-
-
-class Provider(str, Enum):
-    HUGGINGFACE = "huggingface"
-    GITHUB = "github"
-    OTHER = "other"
-
 
 # ---- Domain: NDJSON output schema for MODEL lines ----
 
@@ -83,7 +66,7 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
         ("code_quality", code_quality, 1),
         ("performance_claims", performance_claims, 1),
         ("bus_factor", bus_factor, 1),
-        ("size", size, 1),
+        ("size_score", size_score, 1),
         ("ramp_up_time", ramp_up_time, 1),
         ("license", license, 1),
         ("dataset_quality", dataset_quality, 1),
@@ -117,12 +100,19 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
                 metric_scores[n] = score
                 metric_scores[f"{n}_latency"] = latency
 
-    # Compute net score last
+    # TEMPORARY FIX, NEED TO CHANGE
     net_en = 1  # enabled
     if net_en:
-        net, net_latency = net_score(metric_scores)
+        net_score_input = {}
+        for k, v in metric_scores.items():
+            # Only include keys that are intended to be numeric *scores*
+            if not k.endswith("_latency") and k not in ["name", "category", "size_score"]:
+                net_score_input[k] = v
+
+        net, net_latency = net_score(net_score_input)
         metric_scores["net_score"] = net
         metric_scores["net_score_latency"] = net_latency
+
 
     final_ordered_scores: GradeResult = {}
     

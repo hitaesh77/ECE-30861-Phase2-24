@@ -7,19 +7,7 @@ import subprocess
 from pathlib import Path
 from enum import Enum
 from typing import Dict, Tuple
-# from metrics import run_metrics, GradeResult, UrlCategory, Provider
-
-# STUBS:
-class UrlCategory(str, Enum):
-    MODEL = "MODEL"
-    DATASET = "DATASET"
-    CODE = "CODE"
-    OTHER = "OTHER"
-
-class Provider(str, Enum):
-    HUGGINGFACE = "huggingface"
-    GITHUB = "github"
-    OTHER = "other"
+from utils import UrlCategory, Provider
 
 
 def setup_logger():
