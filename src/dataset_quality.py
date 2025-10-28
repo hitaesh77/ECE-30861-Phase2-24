@@ -30,7 +30,7 @@ async def compute(model_url: str, code_url: str, dataset_url: str) -> Tuple[floa
     has_license = bool(info.card_data.get("license"))
     has_files = bool(info.siblings)
     
-    score = sum([has_description, has_license, has_files]) / 3
+    score = round((sum([has_description, has_license, has_files]) / 3), 2)
     latency_ms = (int)((time.time() - startTime) * 1000)
     
     return score, latency_ms

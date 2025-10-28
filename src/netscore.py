@@ -28,7 +28,7 @@ def compute(metrics: Mapping[str, float]) -> Tuple[float, int]:
     for key, w in WEIGHTS.items():
         net += w * bounds(metrics.get(key,0.0))
         
-    net = bounds(net)
+    net = round(bounds(net), 2)
     
     latency_ms = int((time.perf_counter_ns() - startTime)/(1000000))
     
