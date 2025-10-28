@@ -7,7 +7,20 @@ import subprocess
 from pathlib import Path
 from enum import Enum
 from typing import Dict, Tuple
-from metrics import run_metrics, GradeResult, UrlCategory, Provider
+# from metrics import run_metrics, GradeResult, UrlCategory, Provider
+
+# STUBS:
+class UrlCategory(str, Enum):
+    MODEL = "MODEL"
+    DATASET = "DATASET"
+    CODE = "CODE"
+    OTHER = "OTHER"
+
+class Provider(str, Enum):
+    HUGGINGFACE = "huggingface"
+    GITHUB = "github"
+    OTHER = "other"
+
 
 def setup_logger():
     log_file = os.getenv("LOG_FILE", "llm_logs.log")
@@ -37,6 +50,7 @@ logger = setup_logger()
 
 # --- Ingest: URL parsing & classification ---
 def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
+    from metrics import UrlCategory, Provider
     """Return (category, provider, ids) for a URL string. Improved dataset detection."""
     s = raw.strip()
     if not s:
@@ -69,6 +83,9 @@ def read_enter_delimited_file(filename: str) -> list[str]:
 
 def urls_processor(urls_file: str) -> Dict:
     """Process a newline-delimited URL file."""
+
+    from metrics import run_metrics, GradeResult, UrlCategory, Provider
+
     p = Path(urls_file)
     if not p.exists():
         logger.error(f"Error: file not found: {p}")
