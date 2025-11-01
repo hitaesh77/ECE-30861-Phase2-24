@@ -1,11 +1,13 @@
 # Logs
 log.txt
+*.log
 
 # Package managers
 llmgrader.egg-info/
 
 #API keys
 #api_keys.py
+.env
 
 # pycache
 __pycache__/
