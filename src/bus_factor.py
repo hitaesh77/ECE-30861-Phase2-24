@@ -1,7 +1,7 @@
 # from transformers import AutoModelForCausalLM, AutoTokenizer
 # import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
 import time
-from typing import Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 ERROR_VALUE = -1.0
@@ -17,7 +17,7 @@ def normalize_model_url(model_url: str) -> str:
         return path
     return model_url
 
-async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Calculates the bus factor (robustness to ablation) for a Hugging Face model.
     Returns (score, latency_ms).

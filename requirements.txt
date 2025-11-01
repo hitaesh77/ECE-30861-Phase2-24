@@ -5,4 +5,8 @@ asyncio
 requests
 pytest
 transformers
-torch
+huggingface_hub
+torch==2.5.0+cpu
+torchvision==0.20.0+cpu
+torchaudio==2.5.0+cpu
+-f https://download.pytorch.org/whl/torch_stable.html

@@ -85,14 +85,14 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
     for n, result in zip(task_names, results):
         if n == "name" or n == "category":
             if isinstance(result, Exception):
-                logging.error(f"Error in metric {n}: {result}")
+                logging.error(f"Error in metric {n}:{result}")
                 metric_scores[n] = ERROR_VALUE
             else:
                 score, latency = result
                 metric_scores[n] = score
         else:
             if isinstance(result, Exception):
-                logging.error(f"Error in metric {n}: {result}")
+                logging.error(f"Error in metric {n}:{result}")
                 metric_scores[n] = ERROR_VALUE
                 metric_scores[f"{n}_latency"] = 0.0
             else:

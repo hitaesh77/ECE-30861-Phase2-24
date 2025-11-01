@@ -3,16 +3,18 @@ import tempfile
 import time
 import shutil
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 import logging
-import git  # from GitPython
 
 
-async def compute(model_url: str, code_url: str | None, dataset_url: str | None) -> Tuple[float, int]:
+async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
     Compute code quality metric based on GitHub repo metadata.
     Returns: (score [0-1], latency_ms)
     """
+
+    import git  # from GitPython
+    
     start = time.perf_counter()
 
     if not code_url or "github.com" not in code_url:
