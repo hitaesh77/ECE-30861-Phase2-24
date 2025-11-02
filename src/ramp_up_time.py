@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from typing import Optional, Tuple
 import os
 import re
+import requests
 
 ERROR_VALUE = -1.0
 

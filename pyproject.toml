@@ -70,7 +70,7 @@ asyncio_mode = "auto"
 [tool.coverage.run]
 omit = ["tests/*"]
 branch = true
-source = ["."]
+source = ["src"]
 
 [tool.isort]
 line_length = 100
