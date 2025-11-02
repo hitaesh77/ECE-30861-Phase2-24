@@ -1,10 +1,8 @@
-from fastapi import FastAPI, status
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routers import artifact_router
-from src.api.models import Metric, ModelRating
+from api.routers import artifacts
 
-#edit fastapi title and desc later, for now llm generated
 app = FastAPI(
     title="ECE 461 - Trustworthy Model Registry API",
     description="Baseline API implementation for the Trustworthy Model Registry.",
@@ -12,16 +10,25 @@ app = FastAPI(
     contact={
         "name": "Your Team Name",
     },
-    # Disable default tags to use custom ones defined in the router
-    openapi_tags=[{"name": "Artifacts", "description": "Operations on Models, Datasets, and Code."}]
 )
 
-# deal with cors if issues come up
+# Add CORS middleware if needed
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# expose url
+# Include the router - NO PREFIX, paths defined in router
+app.include_router(artifacts.router)
 
-# Include the router for artifact-related endpoints
-app.include_router(artifact_router.router)
-
-# Run command (for local testing):
-# uvicorn src.main:app --reload
+# Root endpoint
+@app.get("/")
+async def root():
+    return {
+        "message": "Trustworthy Model Registry API",
+        "version": "3.4.2",
+        "status": "operational"
+    }
