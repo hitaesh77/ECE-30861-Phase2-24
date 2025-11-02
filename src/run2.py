@@ -38,7 +38,7 @@ logger = setup_logger()
 
 # --- Ingest: URL parsing & classification ---
 def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
-    from metrics import UrlCategory, Provider
+    from src.metrics import UrlCategory, Provider
     """Return (category, provider, ids) for a URL string. Improved dataset detection."""
     s = raw.strip()
     if not s:
