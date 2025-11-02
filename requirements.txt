@@ -10,3 +10,8 @@ huggingface_hub
 fastapi
 pydantic
 uvicorn[standard]
+huggingface_hub
+torch==2.5.0
+torchvision==0.20.0
+torchaudio==2.5.0
+-f https://download.pytorch.org/whl/torch_stable.html
