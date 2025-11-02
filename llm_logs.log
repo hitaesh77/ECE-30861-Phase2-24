@@ -1,2 +1,4 @@
-2025-11-01 15:03:20,023 - INFO - Installing project dependencies...
-2025-11-01 15:03:32,726 - INFO - Installation completed successfully!
+2025-11-02 17:23:47,638 - INFO - Processing URLs from file: single_url.txt
+2025-11-02 17:23:47,836 - INFO - Read 1 lines from single_url.txt. (grading stub)
+2025-11-02 17:23:48,029 - INFO - Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\code_quality_rici665h\repo
+2025-11-02 17:23:49,134 - INFO - [performance_claims] Cloning https://github.com/google-research/bert into C:\Users\hitae\AppData\Local\Temp\perf_claims_t0lxi1s4\repo
