@@ -5,7 +5,7 @@ asyncio
 requests
 pytest
 transformers
-torch
+# torch
 huggingface_hub
 fastapi
 pydantic
@@ -15,3 +15,6 @@ huggingface_hub
 # torchvision==0.20.0
 # torchaudio==2.5.0
 # -f https://download.pytorch.org/whl/torch_stable.html
+boto3>=1.28.0
+aioboto3>=12.0.0
+python-dotenv>=1.0.0
