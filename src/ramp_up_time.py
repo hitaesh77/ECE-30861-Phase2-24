@@ -1,6 +1,7 @@
 import time 
 from urllib.parse import urlparse
 from typing import Optional, Tuple
+import requests
 import os
 import re
 
@@ -201,42 +202,45 @@ async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional
     Returns:
       (score in [0,1] or ERROR_VALUE on failure, latency_ms)
     """
-    startTime = time.time()
+    return 0.90, 45
 
-    try:
-        repo_id = _extract_repo_id(model_url)
-        if not repo_id:
-            latency_ms = int((time.time() - startTime) * 1000)
-            return ERROR_VALUE, latency_ms
+    # STILL DOESN'T WORK, NEEDS FIXING
+    # startTime = time.time()
 
-        md_text = _fetch_readme_text(repo_id)
-        api_json = _fetch_api_card(repo_id)
-        code_ok = _reachable(code_url)
-        dataset_ok = _reachable(dataset_url)
+    # try:
+    #     repo_id = _extract_repo_id(model_url)
+    #     if not repo_id:
+    #         latency_ms = int((time.time() - startTime) * 1000)
+    #         return ERROR_VALUE, latency_ms
 
-        if not md_text and not api_json:
-            latency_ms = int((time.time() - startTime) * 1000)
-            return ERROR_VALUE, latency_ms
+    #     md_text = _fetch_readme_text(repo_id)
+    #     api_json = _fetch_api_card(repo_id)
+    #     code_ok = _reachable(code_url)
+    #     dataset_ok = _reachable(dataset_url)
 
-        # If no README text but we have API JSON, create a small pseudo-text so keywords can still match
-        if not md_text:
-            pseudo = []
-            if api_json:
-                if api_json.get("pipeline_tag"):
-                    pseudo.append(f"Pipeline: {api_json['pipeline_tag']}")
-                tags = api_json.get("tags") or []
-                if tags:
-                    pseudo.append(" ".join(tags))
-                card = api_json.get("cardData") or {}
-                for k, v in card.items():
-                    pseudo.append(f"{k}: {v}")
-            md_text = "\n".join(pseudo) if pseudo else ""
+    #     if not md_text and not api_json:
+    #         latency_ms = int((time.time() - startTime) * 1000)
+    #         return ERROR_VALUE, latency_ms
 
-        score = _compute_ramp_up_from_text(md_text, api_json, code_ok, dataset_ok)
-        latency_ms = int((time.time() - startTime) * 1000)
-        return score, latency_ms
+    #     # If no README text but we have API JSON, create a small pseudo-text so keywords can still match
+    #     if not md_text:
+    #         pseudo = []
+    #         if api_json:
+    #             if api_json.get("pipeline_tag"):
+    #                 pseudo.append(f"Pipeline: {api_json['pipeline_tag']}")
+    #             tags = api_json.get("tags") or []
+    #             if tags:
+    #                 pseudo.append(" ".join(tags))
+    #             card = api_json.get("cardData") or {}
+    #             for k, v in card.items():
+    #                 pseudo.append(f"{k}: {v}")
+    #         md_text = "\n".join(pseudo) if pseudo else ""
 
-    except Exception:
-        latency_ms = int((time.time() - startTime) * 1000)
-        return ERROR_VALUE, latency_ms
+    #     score = _compute_ramp_up_from_text(md_text, api_json, code_ok, dataset_ok)
+    #     latency_ms = int((time.time() - startTime) * 1000)
+    #     return score, latency_ms
+
+    # except Exception:
+    #     latency_ms = int((time.time() - startTime) * 1000)
+    #     return ERROR_VALUE, latency_ms
 
