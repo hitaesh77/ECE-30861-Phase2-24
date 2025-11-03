@@ -12,11 +12,13 @@ async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional
     startTime = time.time()
 
     if not dataset_url or "huggingface.co/datasets" not in dataset_url:
-        return 0.0
+        latency_ms = int((time.time() - startTime) * 1000)
+        return 0.0, latency_ms
 
     parts = dataset_url.strip("/").split("/")
     if len(parts) < 5:
-        return 0.0
+        latency_ms = int((time.time() - startTime) * 1000)
+        return 0.0, latency_ms
 
     owner, name = parts[-2], parts[-1]
     repo_id = f"{owner}/{name}"
@@ -25,7 +27,8 @@ async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional
     try:
         info = api.dataset_info(repo_id)
     except Exception:
-        return 0.0
+        latency_ms = int((time.time() - startTime) * 1000)
+        return 0.0, latency_ms
 
     has_description = bool(info.card_data.get("description"))
     has_license = bool(info.card_data.get("license"))
