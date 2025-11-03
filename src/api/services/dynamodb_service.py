@@ -1,9 +1,35 @@
 from typing import Dict, List, Optional
 from datetime import datetime
+from decimal import Decimal
 from botocore.exceptions import ClientError
+import json
 
 from api.aws_config import aws_config
 from api.models.artifact import ArtifactType
+
+def convert_floats_to_decimal(obj):
+    """
+    Recursively convert all float values to Decimal for DynamoDB compatibility.
+    """
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    elif isinstance(obj, dict):
+        return {k: convert_floats_to_decimal(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_floats_to_decimal(item) for item in obj]
+    return obj
+
+def convert_decimal_to_float(obj):
+    """
+    Recursively convert all Decimal values back to float for JSON serialization.
+    """
+    if isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_decimal_to_float(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_decimal_to_float(item) for item in obj]
+    return obj
 
 class DynamoDBService:
     """Service for DynamoDB operations."""
@@ -16,21 +42,22 @@ class DynamoDBService:
         async with aws_config.get_dynamodb_resource() as dynamodb:
             table = await dynamodb.Table(self.table_name)
             
-            item = {
+            # Convert floats to Decimal before storing
+            item = convert_floats_to_decimal({
                 'id': artifact_data['id'],
                 'name': artifact_data['name'],
                 'type': artifact_data['type'],
                 'url': artifact_data['url'],
                 'created_at': artifact_data['created_at'],
                 'updated_at': artifact_data.get('updated_at', artifact_data['created_at'])
-            }
+            })
             
             # Add rating if present
             if artifact_data.get('rating'):
-                item['rating'] = artifact_data['rating']
+                item['rating'] = convert_floats_to_decimal(artifact_data['rating'])
             
             await table.put_item(Item=item)
-            return item
+            return convert_decimal_to_float(item)
     
     async def get_artifact(self, artifact_id: str) -> Optional[Dict]:
         """Get artifact by ID."""
@@ -39,7 +66,8 @@ class DynamoDBService:
             
             try:
                 response = await table.get_item(Key={'id': artifact_id})
-                return response.get('Item')
+                item = response.get('Item')
+                return convert_decimal_to_float(item) if item else None
             except ClientError as e:
                 if e.response['Error']['Code'] == 'ResourceNotFoundException':
                     return None
@@ -49,6 +77,9 @@ class DynamoDBService:
         """Update an artifact."""
         async with aws_config.get_dynamodb_resource() as dynamodb:
             table = await dynamodb.Table(self.table_name)
+            
+            # Convert updates to Decimal
+            updates = convert_floats_to_decimal(updates)
             
             update_expr = "SET "
             expr_attr_values = {}
@@ -75,7 +106,7 @@ class DynamoDBService:
                 ReturnValues="ALL_NEW"
             )
             
-            return response.get('Attributes', {})
+            return convert_decimal_to_float(response.get('Attributes', {}))
     
     async def delete_artifact(self, artifact_id: str) -> bool:
         """Delete an artifact."""
@@ -131,6 +162,9 @@ class DynamoDBService:
             items = response.get('Items', [])
             next_key = response.get('LastEvaluatedKey')
             
+            # Convert Decimal back to float
+            items = [convert_decimal_to_float(item) for item in items]
+            
             return items, next_key
     
     async def get_artifact_by_url(self, url: str) -> Optional[Dict]:
@@ -146,7 +180,9 @@ class DynamoDBService:
             )
             
             items = response.get('Items', [])
-            return items[0] if items else None
+            if items:
+                return convert_decimal_to_float(items[0])
+            return None
     
     async def clear_all_artifacts(self):
         """Clear all artifacts (for reset endpoint)."""
