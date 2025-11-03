@@ -38,8 +38,10 @@ logger = setup_logger()
 
 # --- Ingest: URL parsing & classification ---
 def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
-    from src.metrics import UrlCategory, Provider
+    from metrics import UrlCategory, Provider
+    
     """Return (category, provider, ids) for a URL string. Improved dataset detection."""
+
     s = raw.strip()
     if not s:
         return UrlCategory.OTHER, Provider.OTHER, {"url": ""}
@@ -93,7 +95,6 @@ def urls_processor(urls_file: str) -> Dict:
             url = url.strip()
             if not url:
                 continue
-            
             category, provider, ids = classify_url(url)
             # Store the info for this group
             url_dictionary[category] = ids
@@ -108,6 +109,7 @@ def urls_processor(urls_file: str) -> Dict:
             # sys.stdout.write(json.dumps(result) + '\n') 
             sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n') 
             last_result = result
+
         except Exception as e:
             logger.error(f"Error running metrics for line '{line}': {e}", exc_info=True)
 

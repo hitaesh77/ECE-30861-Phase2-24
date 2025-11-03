@@ -1,12 +1,2 @@
-2025-11-02 18:48:40,702 - INFO - Processing URLs from file: single_url.txt
-2025-11-02 18:48:40,841 - INFO - Read 1 lines from single_url.txt. (grading stub)
-2025-11-02 18:48:40,841 - CRITICAL - A critical error occurred during URL processing: No module named 'src'
-Traceback (most recent call last):
-  File "C:\Users\hitae\OneDrive\Documents\GitHub\ECE-30861-Phase2-24\src\run2.py", line 244, in main
-    urls_processor(urls_file)
-  File "C:\Users\hitae\OneDrive\Documents\GitHub\ECE-30861-Phase2-24\src\run2.py", line 97, in urls_processor
-    category, provider, ids = classify_url(url)
-                              ^^^^^^^^^^^^^^^^^
-  File "C:\Users\hitae\OneDrive\Documents\GitHub\ECE-30861-Phase2-24\src\run2.py", line 41, in classify_url
-    from src.metrics import UrlCategory, Provider
-ModuleNotFoundError: No module named 'src'
+2025-11-02 19:47:27,004 - INFO - Installing project dependencies...
+2025-11-02 19:47:28,453 - INFO - Installation completed successfully!
