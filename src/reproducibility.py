@@ -29,20 +29,16 @@ def compute_reproducibility(model_url: str):
         data = resp.json()
         has_demo = False
 
-        # 1️⃣ Check cardData (README) for usage/demo code
         card_texts = []
         if "cardData" in data and data["cardData"]:
             card_texts.append(str(data["cardData"]).lower())
 
-        # 2️⃣ Check README if available
         if "readme" in data and data["readme"]:
             card_texts.append(data["readme"].lower())
 
-        # 3️⃣ Check files for .py examples
         file_names = [f["rfilename"] for f in data.get("siblings", []) if "rfilename" in f]
         py_files = [f for f in file_names if f.endswith(".py")]
 
-        # 4️⃣ Look for demo code keywords
         demo_keywords = ["from_pretrained", "pipeline(", "example", "demo"]
         for text in card_texts:
             if any(k in text for k in demo_keywords):
