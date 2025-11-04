@@ -21,6 +21,9 @@ from run2 import classify_url
 from metrics import run_metrics
 from utils import UrlCategory
 
+# import aws services
+from api.services.dynamodb_service import db_service
+
 # Create router WITHOUT prefix - paths are defined per OpenAPI spec
 router = APIRouter(tags=["Artifacts"])
 
@@ -42,48 +45,6 @@ def extract_name_from_url(url: str) -> str:
     
     return path_parts[-1] if path_parts else 'unknown'
 
-# SAFE RUN METRICS:
-async def safe_run_metrics(urls: Dict[UrlCategory, Dict[str, str]]) -> Dict:
-    """
-    Wrapper around run_metrics to catch internal errors and return 
-    a default GradeResult dictionary structure, preventing a 500 error.
-    """
-    try:
-        # Attempt to run the metrics computation
-        return await run_metrics(urls)
-    except Exception as e:
-        # Log the error (optional, but good practice)
-        print(f"FATAL: run_metrics failed internally with: {e}")
-        
-        # Return a default, failed result that conforms to the GradeResult structure
-        return {
-            'name': 'UNKNOWN',
-            'category': 'MODEL',
-            'net_score': -1.0,
-            'net_score_latency': 0.0,
-            'ramp_up_time': -1.0,
-            'ramp_up_time_latency': 0.0,
-            'bus_factor': -1.0,
-            'bus_factor_latency': 0.0,
-            'performance_claims': -1.0,
-            'performance_claims_latency': 0.0,
-            'license': -1.0,
-            'license_latency': 0.0,
-            'dataset_and_code_score': -1.0,
-            'dataset_and_code_score_latency': 0.0,
-            'dataset_quality': -1.0,
-            'dataset_quality_latency': 0.0,
-            'code_quality': -1.0,
-            'code_quality_latency': 0.0,
-            'size_score': {
-                'raspberry_pi': -1.0,
-                'jetson_nano': -1.0,
-                'desktop_pc': -1.0,
-                'aws_server': -1.0
-            },
-            'size_score_latency': 0.0
-        }
-
 async def compute_metrics_from_url(url: str, artifact_type: ArtifactType) -> ModelRating:
     """
     Compute metrics using your existing CLI logic.
@@ -103,7 +64,6 @@ async def compute_metrics_from_url(url: str, artifact_type: ArtifactType) -> Mod
     try:
         # Run your metrics computation
         result = await run_metrics(url_dict)
-        # result = await safe_run_metrics(url_dict)
         
         # Convert to ModelRating format
         rating = ModelRating(
@@ -192,13 +152,21 @@ async def create_artifact(
     # Extract name from URL
     artifact_name = extract_name_from_url(url_str)
     
-    # Check if artifact already exists with same URL
-    for artifact_id, artifact in ARTIFACT_STORE.items():
-        if artifact['url'] == url_str:
-            raise HTTPException(
-                status_code=409,
-                detail="Artifact exists already"
-            )
+    # local implementation to check duplicates
+    # for artifact_id, artifact in ARTIFACT_STORE.items():
+    #     if artifact['url'] == url_str:
+    #         raise HTTPException(
+    #             status_code=409,
+    #             detail="Artifact exists already"
+    #         )
+    
+    # aws implementation to check duplicates
+    existing = await db_service.get_artifact_by_url(url_str)
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail="Artifact exists already"
+        )
     
     # Generate unique ID
     artifact_id = generate_artifact_id()
@@ -225,7 +193,11 @@ async def create_artifact(
         'created_at': datetime.utcnow().isoformat()
     }
     
-    ARTIFACT_STORE[artifact_id] = artifact_record
+    # local implementation
+    # ARTIFACT_STORE[artifact_id] = artifact_record
+
+    # aws implementation
+    await db_service.create_artifact(artifact_record)
     
     # Return artifact
     return Artifact(
@@ -249,10 +221,17 @@ async def get_artifact(
     x_authorization: Optional[str] = Header(None)
 ):
     """Return this artifact."""
-    if id not in ARTIFACT_STORE:
-        raise HTTPException(status_code=404, detail="Artifact does not exist")
+
+    # local implementation
+    # if id not in ARTIFACT_STORE:
+    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
     
-    artifact = ARTIFACT_STORE[id]
+    # artifact = ARTIFACT_STORE[id]
+
+    # aws implementation
+    artifact = await db_service.get_artifact(id)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artifact does not exist")
     
     if artifact['type'] != artifact_type.value:
         raise HTTPException(
@@ -281,10 +260,16 @@ async def update_artifact(
     x_authorization: Optional[str] = Header(None)
 ):
     """Update this content of the artifact."""
-    if id not in ARTIFACT_STORE:
+
+    # local implementation
+    # if id not in ARTIFACT_STORE:
+    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
+    # existing = ARTIFACT_STORE[id]
+
+    # aws implementation
+    existing = await db_service.get_artifact(id)
+    if not existing:
         raise HTTPException(status_code=404, detail="Artifact does not exist")
-    
-    existing = ARTIFACT_STORE[id]
     
     if existing['type'] != artifact_type.value:
         raise HTTPException(status_code=400, detail="Artifact type mismatch")
@@ -296,9 +281,12 @@ async def update_artifact(
             detail="Name and ID must match"
         )
     
-    # Update URL
-    existing['url'] = str(artifact.data.url)
-    existing['updated_at'] = datetime.utcnow().isoformat()
+    # Update URL in local implementation
+    # existing['url'] = str(artifact.data.url)
+    # existing['updated_at'] = datetime.utcnow().isoformat()
+
+    # update URL in aws implementation
+    await db_service.update_artifact(id, {'url': str(artifact.data.url)})
     
     return {"message": "Artifact is updated"}
 
@@ -313,107 +301,117 @@ async def delete_artifact(
     x_authorization: Optional[str] = Header(None)
 ):
     """Delete this artifact."""
-    if id not in ARTIFACT_STORE:
+
+    # local implementation
+    # if id not in ARTIFACT_STORE:
+    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
+    # artifact = ARTIFACT_STORE[id]
+
+    # aws implementation
+    artifact = await db_service.get_artifact(id)
+    if not artifact:
         raise HTTPException(status_code=404, detail="Artifact does not exist")
-    
-    artifact = ARTIFACT_STORE[id]
     
     if artifact['type'] != artifact_type.value:
         raise HTTPException(status_code=400, detail="Artifact type mismatch")
     
-    del ARTIFACT_STORE[id]
+    # aws implementation
+    await db_service.delete_artifact(id)
+
+    # local implementation
+    # del ARTIFACT_STORE[id]
     
     return {"message": "Artifact is deleted"}
 
 
-@router.post(
-    "/artifacts",
-    response_model=List[ArtifactMetadata],
-    summary="List artifacts (BASELINE - Enumerate)"
-)
-async def list_artifacts(
-    queries: List[ArtifactQuery],
-    response: Response,
-    offset: Optional[str] = Query(None),
-    x_authorization: Optional[str] = Header(None)
-):
-    """
-    Get artifacts matching queries.
+# @router.post(
+#     "/artifacts",
+#     response_model=List[ArtifactMetadata],
+#     summary="List artifacts (BASELINE - Enumerate)"
+# )
+# async def list_artifacts(
+#     queries: List[ArtifactQuery],
+#     response: Response,
+#     offset: Optional[str] = Query(None),
+#     x_authorization: Optional[str] = Header(None)
+# ):
+#     """
+#     Get artifacts matching queries.
     
-    If query name is "*", return all artifacts.
-    Otherwise, search by name and optionally filter by types.
+#     If query name is "*", return all artifacts.
+#     Otherwise, search by name and optionally filter by types.
     
-    Response is paginated with offset in header.
-    """
-    if not queries:
-        raise HTTPException(
-            status_code=400,
-            detail="At least one query required"
-        )
+#     Response is paginated with offset in header.
+#     """
+#     if not queries:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="At least one query required"
+#         )
     
-    # Handle wildcard query (enumerate all)
-    if len(queries) == 1 and queries[0].name == "*":
-        # Get all artifacts
-        all_artifacts = list(ARTIFACT_STORE.values())
+#     # Handle wildcard query (enumerate all)
+#     if len(queries) == 1 and queries[0].name == "*":
+#         # Get all artifacts
+#         all_artifacts = list(ARTIFACT_STORE.values())
         
-        # Apply pagination
-        start_idx = int(offset) if offset else 0
-        page_size = 10
+#         # Apply pagination
+#         start_idx = int(offset) if offset else 0
+#         page_size = 10
         
-        paginated = all_artifacts[start_idx:start_idx + page_size]
-        next_offset = start_idx + page_size if start_idx + page_size < len(all_artifacts) else None
+#         paginated = all_artifacts[start_idx:start_idx + page_size]
+#         next_offset = start_idx + page_size if start_idx + page_size < len(all_artifacts) else None
         
-        # Set offset header
-        if next_offset is not None:
-            response.headers["offset"] = str(next_offset)
+#         # Set offset header
+#         if next_offset is not None:
+#             response.headers["offset"] = str(next_offset)
         
-        # Convert to metadata format
-        return [
-            ArtifactMetadata(
-                name=item['name'],
-                id=item['id'],
-                type=ArtifactType(item['type'])
-            )
-            for item in paginated
-        ]
+#         # Convert to metadata format
+#         return [
+#             ArtifactMetadata(
+#                 name=item['name'],
+#                 id=item['id'],
+#                 type=ArtifactType(item['type'])
+#             )
+#             for item in paginated
+#         ]
     
-    # Handle specific name queries
-    results = []
-    seen_ids = set()
+#     # Handle specific name queries
+#     results = []
+#     seen_ids = set()
     
-    for query in queries:
-        for artifact_id, artifact in ARTIFACT_STORE.items():
-            # Skip if already included
-            if artifact_id in seen_ids:
-                continue
+#     for query in queries:
+#         for artifact_id, artifact in ARTIFACT_STORE.items():
+#             # Skip if already included
+#             if artifact_id in seen_ids:
+#                 continue
             
-            # Check name match
-            if artifact['name'] == query.name:
-                # Check type filter if specified
-                if query.types:
-                    type_values = [t.value for t in query.types]
-                    if artifact['type'] not in type_values:
-                        continue
+#             # Check name match
+#             if artifact['name'] == query.name:
+#                 # Check type filter if specified
+#                 if query.types:
+#                     type_values = [t.value for t in query.types]
+#                     if artifact['type'] not in type_values:
+#                         continue
                 
-                results.append(artifact)
-                seen_ids.add(artifact_id)
+#                 results.append(artifact)
+#                 seen_ids.add(artifact_id)
     
-    # Check for too many results
-    if len(results) > 100:
-        raise HTTPException(
-            status_code=413,
-            detail="Too many artifacts returned"
-        )
+#     # Check for too many results
+#     if len(results) > 100:
+#         raise HTTPException(
+#             status_code=413,
+#             detail="Too many artifacts returned"
+#         )
     
-    # Convert to metadata format
-    return [
-        ArtifactMetadata(
-            name=item['name'],
-            id=item['id'],
-            type=ArtifactType(item['type'])
-        )
-        for item in results
-    ]
+#     # Convert to metadata format
+#     return [
+#         ArtifactMetadata(
+#             name=item['name'],
+#             id=item['id'],
+#             type=ArtifactType(item['type'])
+#         )
+#         for item in results
+#     ]
 
 
 @router.get(
@@ -426,10 +424,17 @@ async def rate_model(
     x_authorization: Optional[str] = Header(None)
 ):
     """Get ratings for this model artifact."""
-    if id not in ARTIFACT_STORE:
-        raise HTTPException(status_code=404, detail="Artifact does not exist")
+
+    # local implementation
+    # if id not in ARTIFACT_STORE:
+    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
     
-    artifact = ARTIFACT_STORE[id]
+    # artifact = ARTIFACT_STORE[id]
+
+    # aws implementation
+    artifact = await db_service.get_artifact(id)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artifact does not exist")
     
     if artifact['type'] != 'model':
         raise HTTPException(
@@ -457,9 +462,9 @@ async def health_check():
     return {"status": "ok"}
 
 
-@router.delete("/reset")
-async def reset_registry(x_authorization: Optional[str] = Header(None)):
-    """Reset the registry (BASELINE)."""
-    global ARTIFACT_STORE
-    ARTIFACT_STORE.clear()
-    return {"message": "Registry is reset"}
+# @router.delete("/reset")
+# async def reset_registry(x_authorization: Optional[str] = Header(None)):
+#     """Reset the registry (BASELINE)."""
+#     global ARTIFACT_STORE
+#     ARTIFACT_STORE.clear()
+#     return {"message": "Registry is reset"}

@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 from api.routers import artifacts
 
@@ -30,5 +34,6 @@ async def root():
     return {
         "message": "Trustworthy Model Registry API",
         "version": "3.4.2",
-        "status": "operational"
+        "status": "operational",
+        "aws_region": os.getenv('AWS_REGION', 'not configured')
     }
