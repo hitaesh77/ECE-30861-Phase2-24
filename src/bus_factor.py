@@ -1,102 +1,115 @@
-# from transformers import AutoModelForCausalLM, AutoTokenizer
-# import torch #using pytorch framwework for model manipulation. chose pytorch vs tensorflow because of its variability and similarity to python syntax and simplicity (easier ramp up)
+import asyncio
+import math
 import time
-from typing import Optional, Tuple
+# import logging
+from typing import Optional, Tuple, Dict
 from urllib.parse import urlparse
+from huggingface_hub import HfApi
 
-ERROR_VALUE = -1.0
-
-def normalize_model_url(model_url: str) -> str:
-    """
-    Hugging Face model identifiers should be in the form
-    'namespace/model_name' (not full URLs).
-    """
-    if model_url.startswith("http"):
-        # Example: https://huggingface.co/google-bert/bert-base-uncased
-        path = urlparse(model_url).path.strip("/")  # -> google-bert/bert-base-uncased
-        return path
-    return model_url
 
 async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
     """
-    Calculates the bus factor (robustness to ablation) for a Hugging Face model.
-    Returns (score, latency_ms).
+    Computes a 'bus factor' score for a Hugging Face repository.
+    The bus factor estimates how resilient a project is to losing top contributors.
+    
+    Args:
+        model_url: URL of the Hugging Face model repository
+        code_url: (Optional) URL of associated source code repository
+        dataset_url: (Optional) URL of associated dataset repository
+
+    Returns:
+        (bus_factor_score, latency_ms)
     """
-    return 0.95, 25
 
-    # # Start timing
-    # start_time = time.time()
-    # model_id = normalize_model_url(model_url)
-    # # Try to load the model + tokenizer
-    # try:
-    #     tokenizer = AutoTokenizer.from_pretrained(model_id) #need tokenizer to convert text to language LLM can understand. using huggingface tokenizer
-    #     model = AutoModelForCausalLM.from_pretrained(model_id)  #loading model from huggingface for analysis
-    #     model.eval()
-    # except Exception as e:
-    #     print(f"[Error] Could not load model: {e} ") # log file will print to stdout
-    #     return ERROR_VALUE, ((time.time() - start_time) * 1000)  # return error value and 0 ms latency
+    # # logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-    # # Default prompts if none provided
-    # eval_prompts = [
-    # "The capital of France is",
-    #     "The chemical symbol for water is",
-    #     "The largest planet in our solar system is",
-    #     "The author of '1984' is",
-    #     "The square root of 16 is"
-    # ]
+    if not model_url:
+        # logging.warning("No model URL provided; returning default values.")
+        return 0.0, 0
 
-    # # Default answers
-    # eval_answers = ["Paris", "H2O", "Jupiter", "George Orwell", "4"]
+    start_time = time.perf_counter()
+    api = HfApi()
 
-    # # Pick CPU or GPU | Not sure if this is needed for the scope of this project
-    # device = "cuda" if torch.cuda.is_available() else "cpu" #if a GPU is available, use it, if not use CPU
-    # model.to(device)
+    # Parse owner/repo from the model URL
+    try:
+        parts = urlparse(model_url).path.strip("/").split("/")
+        if len(parts) < 2:
+            # logging.error(f"Invalid model URL: {model_url}")
+            return 0.0, 0
+        repo_id = f"{parts[0]}/{parts[1]}"
+    except Exception as e:
+        # logging.exception(f"Error parsing model URL: {e}")
+        return 0.0, 0
 
-    # # Function to evaluate accuracy
-    # def eval_model(m):
-    #     correct = 0
-    #     for prompt, ans in zip(eval_prompts, eval_answers): #for each prompt with each answer (zipping them together to input to model)
-    #         inputs = tokenizer(prompt, return_tensors="pt").to(device) #tokenized inputs, return_tensors simply tells our oenizer to retun in pyTorch, and the toDevice tells the tokenizer to keep using the gpu/cpu
-    #         with torch.no_grad(): #with torch.no_grad() to tell our code that we do not need gradients since we are not trainnig a model
-    #             outputs = m.generate(**inputs, max_new_tokens=5) #function to ask the model to generate relevant outputs by inpacking our iniputs using ** and asking it to at most send 5 tokens
-    #         decoded = tokenizer.decode(outputs[0], skip_special_tokens=True) #decoding tokenizied output back to plainitext
-    #         if ans.lower() in decoded.lower(): #if the decoded answer is in the response
-    #             correct += 1 #increment correct
-    #     return correct / len(eval_prompts) #normalize output
+    # Fetch commit info asynchronously via thread executor
+    loop = asyncio.get_event_loop()
+    try:
+        commits = await loop.run_in_executor(None, api.list_repo_commits, repo_id)
+    except Exception as e:
+        # logging.error(f"Could not retrieve commits for {repo_id}: {e}")
+        return 0.0, int((time.perf_counter() - start_time) * 1000)
 
-    # # Baseline accuracy (no ablation)
-    # baseline_acc = eval_model(model) #evaluate the model using the baseline model
+    if not commits:
+        # logging.warning(f"No commits found for repository: {repo_id}")
+        return 0.0, int((time.perf_counter() - start_time) * 1000)
 
-    # # Function to apply random ablation
-    # def ablate_model(m, fraction=0.1):#function to ablate model (turning off some of the weights)
-    #     def hook_fn(module, input, output): #functoin to turn off weights
-    #         mask = (torch.rand_like(output) > fraction).float() #creates a tensor of the shape of output with random numbers. if each number has an equally likely chance of being generated then we get rid of each value under .1. we cast ths to a float which ini theory gives us eiither 1.0 or 0.0
-    #         return output * mask #muuliply output by mask, so fraction% of values will be zeroed out
-    #     handles = []
-    #     for _, mod in m.named_modules(): # m.named_modules() returns the names for th emoduels and the module layer objects for each layer
-    #         if isinstance(mod, torch.nn.Linear): #checking the type of module to only look for linear layers, nonlinear layers are skipped
-    #             handles.append(mod.register_forward_hook(hook_fn)) #run the hook_fn function to the layer so that every forward pass on that layer randomy cancells out some neurons
-    #     return handles
+    # Aggregate contributions per author
+    contributions: Dict[str, int] = {}
+    total_commits = 0
+    for commit in commits:
+        for author in commit.authors:
+            contributions[author] = contributions.get(author, 0) + 1
+            total_commits += 1
 
-    # # Ablation fractions
-    # fractions = [0.1, 0.2, 0.3, 0.4, 0.5]
-    # robustness_scores = []
+    num_contributors = len(contributions)
+    if num_contributors <= 1 or total_commits == 0:
+        latency_ms = int((time.perf_counter() - start_time) * 1000)
+        return 0.0, latency_ms
 
-    # # Evaluate robustness under ablation
-    # for frac in fractions:
-    #     handles = ablate_model(model, fraction=frac) #create ablated model
-    #     ablated_acc = eval_model(model) #evaluate the ablated model
-    #     for h in handles:
-    #         h.remove()  # remove hooks after use
+    # Entropy-based bus factor score
+    entropy = -sum(
+        (count / total_commits) * math.log2(count / total_commits)
+        for count in contributions.values()
+    )
+    max_entropy = math.log2(num_contributors)
+    bus_factor_score = entropy / max_entropy if max_entropy > 0 else 0.0
 
-    #     drop = max(0.0, baseline_acc - ablated_acc) #comparing ablated scores to baseline scores 0.0 means nothing really changed, 1.0 means completely changed
-    #     robustness = max(0.0, min(1.0, 1.0 - drop / max(1e-5, baseline_acc))) #robustness score is 1.0 - drop normalized by baseline accuracy (max with 1e-5 to avoid div by zero). robustness score to check how well our model does in these new conditions
-    #     robustness_scores.append(robustness)
+    latency_ms = int((time.perf_counter() - start_time) * 1000)
+    # logging.info(f"Computed bus factor = {bus_factor_score:.2f} for {repo_id} in {latency_ms} ms")
 
-    # # Average robustness score
-    # score = sum(robustness_scores) / len(robustness_scores)
+    return bus_factor_score, latency_ms
 
-    # # Stop timing and calculate latency in ms
-    # latency_ms = (int)((time.time() - start_time) * 1000)
 
-    # return round(score, 2), round(latency_ms)
+# Example use:
+if __name__ == "__main__":
+    print("TEST 1")
+    code_url = "https://github.com/google-research/bert"
+    dataset_url = "https://huggingface.co/datasets/bookcorpus/bookcorpus"
+    model_url = "https://huggingface.co/google-bert/bert-base-uncased"
+    score, latency = asyncio.run(compute(model_url, code_url, dataset_url))
+    print(f"Reviewedness score: {score}")
+    print(f"Computation time: {latency:.2f} seconds")
+
+    print("\nTEST 2")
+    code_url    = "https://huggingface.co/chiedo/hello-world"  
+    dataset_url = "https://huggingface.co/datasets/chiedo/hello-world"  
+    model_url   = "https://huggingface.co/chiedo/hello-world"
+    score, latency = asyncio.run(compute(model_url, code_url, dataset_url))
+    print(f"Reviewedness score: {score}")
+    print(f"Computation time: {latency:.2f} seconds")
+
+    print("\nTEST 3")
+    code_url = "https://github.com/huggingface/transformers"  
+    dataset_url = "https://huggingface.co/datasets/none"  
+    model_url = "https://huggingface.co/FacebookAI/roberta-base"
+    score, latency = asyncio.run(compute(model_url, code_url, dataset_url))
+    print(f"Reviewedness score: {score}")
+    print(f"Computation time: {latency:.2f} seconds")
+
+    print("\nTEST 4 (Invalid Model URL)")
+    code_url = "https://github.com/huggingface/transformers"  
+    dataset_url = "https://huggingface.co/datasets/none"  
+    model_url = "https://huggingface.co/roberta-base"
+    score, latency = asyncio.run(compute(model_url, code_url, dataset_url))
+    print(f"Reviewedness score: {score}")
+    print(f"Computation time: {latency:.2f} seconds")
