@@ -1,72 +1,150 @@
-# metrics/performance_claims.py
+import os
+import requests
+import json
 import time
-import logging
-import re
-import tempfile
-import shutil
-from pathlib import Path
-from typing import Optional, Tuple
 
-# A list of keywords/phrases we’ll scan for in repo text
-BENCHMARK_KEYWORDS = [
-    "accuracy", "precision", "recall", "f1", "f-1", "bleu", "rouge",
-    "state-of-the-art", "sota", "outperform", "benchmark", "eval",
-    "imagenet", "cifar", "glue", "squad", "msmarco", "wikitext", "mt-bench"
-]
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional[str]) -> Tuple[float, int]:
+from dotenv import load_dotenv
+load_dotenv()
+
+
+GENAI_BASE_URL  = "https://genai.rcac.purdue.edu/api/chat/completions"
+GENAI_MODEL     = "llama3.1:latest"
+API_KEY_ENV     = "GEN_AI_STUDIO_API_KEY"
+TIMEOUT_SEC     = int(os.getenv("GENAI_TIMEOUT_SEC", "90"))
+README_MAX_CHARS= int(os.getenv("README_MAX_CHARS", "30000"))
+
+def get_model_readme(model_url: str) -> str:
     """
-    Heuristic metric: detect performance/benchmark claims in a repo.
-    Score = fraction of benchmark keywords found, capped at 1.0.
+    Fetches the README (model card) content for a Hugging Face model.
+    """
+    if not model_url.startswith("https://huggingface.co/"):
+        raise ValueError("Invalid Hugging Face model URL")
     
-    Returns: (score ∈ [0,1], latency_ms)
+    model_id = model_url.replace("https://huggingface.co/", "").strip("/")
+    api_url = f"https://huggingface.co/api/models/{model_id}"
+    response = requests.get(api_url, timeout=30)
+    if response.status_code != 200:
+        raise ValueError(f"Failed to fetch model info: {response.status_code}")
+    
+    data = response.json()
+    card_data = data.get("cardData", {})
+    readme = card_data.get("content", "")
+    
+    if not readme:
+        # fallback: fetch README.md from the repo directly
+        alt_url = f"https://huggingface.co/{model_id}/raw/main/README.md"
+        r2 = requests.get(alt_url, timeout=30)
+        if r2.status_code == 200:
+            readme = r2.text
+    
+    return readme[:README_MAX_CHARS]
+
+
+def evaluate_performance_claims(readme_text: str) -> dict:
     """
+    Uses Purdue GenAI to evaluate the README text for performance scoring.
+    """
+    if not readme_text.strip():
+        return {"presence": 0, "detail": 0, "evidence": 0, "confirmation": 0, "final_score": 0}
 
-    import git  # GitPython
+    payload = {
+        "model": GENAI_MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert model card auditor. "
+                    "Given the README text of a Hugging Face model, evaluate its benchmark claims "
+                    "using the rubric below and return a JSON object with subscores and a final score."
+                    "\n\nRubric:\n"
+                    "- presence (45%): 1 if any numeric benchmark claims (README or model-index); else 0.\n"
+                    "- detail (15%): scale by clarity/coverage of dataset/task/split/metric/value.\n"
+                    "- evidence (10%): strength of supporting material.\n"
+                    "- confirmation (30%): authoritative links or model-index corroboration.\n\n"
+                    "Respond ONLY with JSON in the format:\n"
+                    "{'presence': float, 'detail': float, 'evidence': float, 'confirmation': float, 'final_score': float}"
+                )
+            },
+            {"role": "user", "content": readme_text}
+        ],
+        "temperature": 0.0,
+    }
 
-    start = time.perf_counter()
+    headers = {
+        "Authorization": f"Bearer {os.getenv(API_KEY_ENV)}",
+        "Content-Type": "application/json"
+    }
 
-    if not code_url or "github.com" not in code_url:
-        logging.warning("No valid code_url provided, defaulting performance_claims=0.0")
-        return 0.0, (int)((time.perf_counter() - start) * 1000)
+    response = requests.post(
+        GENAI_BASE_URL,
+        headers=headers,
+        data=json.dumps(payload),
+        timeout=TIMEOUT_SEC,
+        verify=False
+    )
 
-    tmpdir = tempfile.mkdtemp(prefix="perf_claims_")
-    score = 0.0
+    if response.status_code != 200:
+        raise ValueError(f"GenAI request failed: {response.status_code} - {response.text}")
 
     try:
-        repo_path = Path(tmpdir) / "repo"
-        logging.info(f"[performance_claims] Cloning {code_url} into {repo_path}")
-        repo = git.Repo.clone_from(code_url, repo_path, depth=30)
+        content = response.json()["choices"][0]["message"]["content"].strip()
+        
+        # Strip Markdown code fences if present
+        if content.startswith("```"):
+            content = content.strip("`")           # remove backticks
+            content = content.replace("json", "", 1).strip()  # remove optional 'json' tag
 
-        # Collect candidate text files (README, docs/, markdown, notebooks, etc.)
-        candidates = []
-        for pattern in ["README.md", "readme.md", "docs", "*.md", "*.rst", "*.txt"]:
-            candidates.extend(repo_path.rglob(pattern))
+        # Now parse the JSON inside
+        scores = json.loads(content)
+        for k in ["presence", "detail", "evidence", "confirmation"]:
+            scores[k] = max(0.0, min(1.0, scores[k] / 10.0)) if scores[k] > 1 else scores[k]
 
-        # Concatenate contents (limit for safety)
-        all_text = ""
-        for f in candidates:
-            try:
-                text = f.read_text(encoding="utf-8", errors="ignore")
-                all_text += "\n" + text
-            except Exception:
-                continue
-
-        # Count matches
-        matches = 0
-        for kw in BENCHMARK_KEYWORDS:
-            if re.search(rf"\b{re.escape(kw)}\b", all_text, flags=re.IGNORECASE):
-                matches += 1
-
-        # Normalize to [0,1] with simple heuristic
-        if matches > 0:
-            score = min(matches / len(BENCHMARK_KEYWORDS), 1.0)
+        scores["final_score"] = round(
+            0.45 * scores.get("presence", 0) +
+            0.15 * scores.get("detail", 0) +
+            0.10 * scores.get("evidence", 0) +
+            0.30 * scores.get("confirmation", 0)
+        , 2) # rounds final score to 2 decimals
 
     except Exception as e:
-        logging.error(f"Error analyzing performance_claims in {code_url}: {e}")
-        score = 0.0
-    finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
+        raise ValueError(f"Could not parse GenAI output: {e}\nRaw content:\n{content}")
 
-    latency_ms = (int)((time.perf_counter() - start) * 1000)
-    return round(score, 2), latency_ms
+
+    return scores
+
+
+def assess_model_performance(model_url: str, code_url: str, dataset_url: str) -> dict:
+    start = time.time()
+    readme = get_model_readme(model_url)
+    result = evaluate_performance_claims(readme)
+    latency_ms = (time.time() - start) * 1000
+    return result["final_score"], latency_ms
+
+if __name__ == "__main__":
+    print("TEST 1")
+    code_url = "https://github.com/google-research/bert"
+    dataset_url = "https://huggingface.co/datasets/bookcorpus/bookcorpus"
+    model_url = "https://huggingface.co/google-bert/bert-base-uncased"
+    score, latency = assess_model_performance(model_url, code_url, dataset_url)
+    print(f"Score: {score}")
+    print(f"Computation time: {latency:.2f} ms")
+
+    print("\nTEST 2")
+    code_url = "https://github.com/huggingface/transformers"  
+    dataset_url = "https://huggingface.co/datasets/none"  
+    model_url = "https://huggingface.co/roberta-base"
+    score, latency = assess_model_performance(model_url, code_url, dataset_url)
+    print(f"Score: {score}")
+    print(f"Computation time: {latency:.2f} ms")
+
+
+    print("\nTEST 3")
+    code_url    = "https://huggingface.co/chiedo/hello-world"  
+    dataset_url = "https://huggingface.co/datasets/chiedo/hello-world"  
+    model_url   = "https://huggingface.co/chiedo/hello-world"
+    score, latency = assess_model_performance(model_url, code_url, dataset_url)
+    print(f"Score: {score}")
+    print(f"Computation time: {latency:.2f} ms")

@@ -11,7 +11,7 @@ load_dotenv()
 
 # LLM Configuration
 GENAI_BASE_URL = "https://genai.rcac.purdue.edu/api/chat/completions"
-GENAI_MODEL = "llama3.1:latest"  # Example model, replace with your own if needed
+GENAI_MODEL = "llama3.1:latest"
 API_KEY_ENV = "GEN_AI_STUDIO_API_KEY"
 TIMEOUT_SEC = 90
 SYSTEM_PROMPT = "You are a strict evaluator. Output valid minified JSON only. No commentary."

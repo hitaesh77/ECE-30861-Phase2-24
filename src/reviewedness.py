@@ -53,16 +53,25 @@ def compute_reviewedness(code_url: str):
         print(f"Error: {e}")
         score = -1
 
-    latency = time.time() - start_time
-    return score, latency
+    latency_ms = (time.time() - start_time) * 1000
+    return score, latency_ms
 
 
 # ------------------ Test run ------------------
 if __name__ == "__main__":
+    print("TEST 1")
     code_url = "https://github.com/google-research/bert"
     dataset_url = "https://huggingface.co/datasets/bookcorpus/bookcorpus"
     model_url = "https://huggingface.co/google-bert/bert-base-uncased"
-
     score, latency = compute_reviewedness(code_url)
     print(f"Reviewedness score: {score}")
-    print(f"Computation time: {latency:.2f} seconds")
+    print(f"Computation time: {latency:.2f} ms")
+
+    print("\nTEST 2")
+    code_url    = "https://huggingface.co/chiedo/hello-world"  
+    dataset_url = "https://huggingface.co/datasets/chiedo/hello-world"  
+    model_url   = "https://huggingface.co/chiedo/hello-world"
+    score, latency = compute_reviewedness(code_url)
+    print(f"Reviewedness score: {score}")
+    print(f"Computation time: {latency:.2f} ms")
+
