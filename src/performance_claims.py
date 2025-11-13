@@ -116,19 +116,20 @@ def evaluate_performance_claims(readme_text: str) -> dict:
     return scores
 
 
-def assess_model_performance(model_url: str, code_url: str, dataset_url: str) -> dict:
-    start = time.time()
-    readme = get_model_readme(model_url)
-    result = evaluate_performance_claims(readme)
-    latency_ms = (time.time() - start) * 1000
-    return result["final_score"], latency_ms
+async def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
+    # start = time.time()
+    # readme = get_model_readme(model_url)
+    # result = evaluate_performance_claims(readme)
+    # latency_ms = (time.time() - start) * 1000
+    # return result["final_score"], latency_ms
+    return 0.0, 0.0  # Disabled for testing without API access
 
 if __name__ == "__main__":
     print("TEST 1")
     code_url = "https://github.com/google-research/bert"
     dataset_url = "https://huggingface.co/datasets/bookcorpus/bookcorpus"
     model_url = "https://huggingface.co/google-bert/bert-base-uncased"
-    score, latency = assess_model_performance(model_url, code_url, dataset_url)
+    score, latency = compute(model_url, code_url, dataset_url)
     print(f"Score: {score}")
     print(f"Computation time: {latency:.2f} ms")
 
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     code_url = "https://github.com/huggingface/transformers"  
     dataset_url = "https://huggingface.co/datasets/none"  
     model_url = "https://huggingface.co/roberta-base"
-    score, latency = assess_model_performance(model_url, code_url, dataset_url)
+    score, latency = compute(model_url, code_url, dataset_url)
     print(f"Score: {score}")
     print(f"Computation time: {latency:.2f} ms")
 
@@ -145,6 +146,6 @@ if __name__ == "__main__":
     code_url    = "https://huggingface.co/chiedo/hello-world"  
     dataset_url = "https://huggingface.co/datasets/chiedo/hello-world"  
     model_url   = "https://huggingface.co/chiedo/hello-world"
-    score, latency = assess_model_performance(model_url, code_url, dataset_url)
+    score, latency = compute(model_url, code_url, dataset_url)
     print(f"Score: {score}")
     print(f"Computation time: {latency:.2f} ms")
