@@ -184,18 +184,48 @@ class DynamoDBService:
                 return convert_decimal_to_float(items[0])
             return None
     
+    # async def clear_all_artifacts(self):
+    #     """Clear all artifacts (for reset endpoint)."""
+    #     async with aws_config.get_dynamodb_resource() as dynamodb:
+    #         table = await dynamodb.Table(self.table_name)
+            
+    #         # Scan and delete all items
+    #         response = await table.scan()
+    #         items = response.get('Items', [])
+            
+    #         async with table.batch_writer() as batch:
+    #             for item in items:
+    #                 await batch.delete_item(Key={'id': item['id']})
+    
     async def clear_all_artifacts(self):
-        """Clear all artifacts (for reset endpoint)."""
+        """Clear all artifacts (for reset endpoint) - Correctly handles pagination."""
         async with aws_config.get_dynamodb_resource() as dynamodb:
             table = await dynamodb.Table(self.table_name)
             
-            # Scan and delete all items
-            response = await table.scan()
-            items = response.get('Items', [])
+            # Use ProjectionExpression to only retrieve the primary key ('id') for efficiency
+            scan_kwargs = {
+                'ProjectionExpression': '#id', 
+                'ExpressionAttributeNames': {'#id': 'id'}
+            }
             
-            async with table.batch_writer() as batch:
-                for item in items:
-                    await batch.delete_item(Key={'id': item['id']})
+            # Scan and delete all items with pagination
+            while True:
+                response = await table.scan(**scan_kwargs)
+                items = response.get('Items', [])
+                
+                # Use batch_writer for efficient mass deletion
+                async with table.batch_writer() as batch:
+                    for item in items:
+                        # Assuming 'id' is the primary key
+                        await batch.delete_item(Key={'id': item['id']})
+                
+                # Check for pagination (LastEvaluatedKey)
+                last_key = response.get('LastEvaluatedKey')
+                if not last_key:
+                    break  # No more pages
+                
+                # Update scan_kwargs for the next page
+                scan_kwargs['ExclusiveStartKey'] = last_key
 
 # Global instance
 db_service = DynamoDBService()

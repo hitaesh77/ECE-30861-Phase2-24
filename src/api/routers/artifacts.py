@@ -462,9 +462,28 @@ async def health_check():
     return {"status": "ok"}
 
 
-# @router.delete("/reset")
-# async def reset_registry(x_authorization: Optional[str] = Header(None)):
-#     """Reset the registry (BASELINE)."""
-#     global ARTIFACT_STORE
-#     ARTIFACT_STORE.clear()
-#     return {"message": "Registry is reset"}
+@router.delete("/reset")
+async def reset_registry(x_authorization: Optional[str] = Header(None)):
+    """Reset the registry (BASELINE)."""
+
+    # local implementation
+    # global ARTIFACT_STORE
+    # ARTIFACT_STORE.clear()
+    # return {"message": "Registry is reset"}
+
+    # aws implementation
+    try:
+            # Assuming db_service is an instance of a DynamoDB service class
+            # with a method to delete all items in the table.
+            # YOU MUST IMPLEMENT db_service.delete_all_artifacts()
+            await db_service.clear_all_artifacts() 
+
+            return {"message": "Registry is reset"}
+        
+    except Exception as e:
+        # Log the error (optional)
+        print(f"Error resetting registry in DynamoDB: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reset registry: {str(e)}"
+        )
