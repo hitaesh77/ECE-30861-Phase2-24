@@ -17,7 +17,7 @@ from api.models.artifact import (
 )
 
 # Import your metrics computation
-from src.run import classify_url
+# from src.run import classify_url
 from metrics import run_metrics
 from utils import UrlCategory
 
@@ -29,6 +29,10 @@ router = APIRouter(tags=["Artifacts"])
 
 # In-memory storage for development (replace with DynamoDB later)
 ARTIFACT_STORE: Dict[str, Dict] = {}
+
+USE_LOCAL = True
+USE_AWS = False
+
 
 def generate_artifact_id() -> str:
     """Generate a unique artifact ID matching the spec format."""
@@ -51,7 +55,7 @@ async def compute_metrics_from_url(url: str, artifact_type: ArtifactType) -> Mod
     This integrates with your run2.py and metrics.py.
     """
     # Classify the URL
-    category, provider, ids = classify_url(url)
+    # category, provider, ids = classify_url(url)
     
     # Build URL dictionary for run_metrics
     url_dict = {
@@ -153,20 +157,22 @@ async def create_artifact(
     artifact_name = extract_name_from_url(url_str)
     
     # local implementation to check duplicates
-    # for artifact_id, artifact in ARTIFACT_STORE.items():
-    #     if artifact['url'] == url_str:
-    #         raise HTTPException(
-    #             status_code=409,
-    #             detail="Artifact exists already"
-    #         )
+    if (USE_LOCAL):
+        for artifact_id, artifact in ARTIFACT_STORE.items():
+            if artifact['url'] == url_str:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Artifact exists already"
+                )
     
     # aws implementation to check duplicates
-    existing = await db_service.get_artifact_by_url(url_str)
-    if existing:
-        raise HTTPException(
-            status_code=409,
-            detail="Artifact exists already"
-        )
+    if (USE_AWS):
+        existing = await db_service.get_artifact_by_url(url_str)
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail="Artifact exists already"
+            )
     
     # Generate unique ID
     artifact_id = generate_artifact_id()
@@ -194,10 +200,12 @@ async def create_artifact(
     }
     
     # local implementation
-    # ARTIFACT_STORE[artifact_id] = artifact_record
+    if (USE_LOCAL):
+        ARTIFACT_STORE[artifact_id] = artifact_record
 
     # aws implementation
-    await db_service.create_artifact(artifact_record)
+    if (USE_AWS):
+        await db_service.create_artifact(artifact_record)
     
     # Return artifact
     return Artifact(
@@ -223,15 +231,16 @@ async def get_artifact(
     """Return this artifact."""
 
     # local implementation
-    # if id not in ARTIFACT_STORE:
-    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
-    
-    # artifact = ARTIFACT_STORE[id]
+    if (USE_LOCAL):
+        if id not in ARTIFACT_STORE:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
+        artifact = ARTIFACT_STORE[id]
 
     # aws implementation
-    artifact = await db_service.get_artifact(id)
-    if not artifact:
-        raise HTTPException(status_code=404, detail="Artifact does not exist")
+    if (USE_AWS):
+        artifact = await db_service.get_artifact(id)
+        if not artifact:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
     
     if artifact['type'] != artifact_type.value:
         raise HTTPException(
@@ -262,15 +271,17 @@ async def update_artifact(
     """Update this content of the artifact."""
 
     # local implementation
-    # if id not in ARTIFACT_STORE:
-    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
-    # existing = ARTIFACT_STORE[id]
+    if (USE_LOCAL):
+        if id not in ARTIFACT_STORE:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
+        existing = ARTIFACT_STORE[id]
 
     # aws implementation
-    existing = await db_service.get_artifact(id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Artifact does not exist")
-    
+    if (USE_AWS):
+        existing = await db_service.get_artifact(id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
+        
     if existing['type'] != artifact_type.value:
         raise HTTPException(status_code=400, detail="Artifact type mismatch")
     
@@ -282,11 +293,13 @@ async def update_artifact(
         )
     
     # Update URL in local implementation
-    # existing['url'] = str(artifact.data.url)
-    # existing['updated_at'] = datetime.utcnow().isoformat()
+    if (USE_LOCAL):
+        existing['url'] = str(artifact.data.url)
+        existing['updated_at'] = datetime.utcnow().isoformat()
 
     # update URL in aws implementation
-    await db_service.update_artifact(id, {'url': str(artifact.data.url)})
+    if (USE_AWS):
+        await db_service.update_artifact(id, {'url': str(artifact.data.url)})
     
     return {"message": "Artifact is updated"}
 
@@ -303,27 +316,31 @@ async def delete_artifact(
     """Delete this artifact."""
 
     # local implementation
-    # if id not in ARTIFACT_STORE:
-    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
-    # artifact = ARTIFACT_STORE[id]
+    if (USE_LOCAL):
+        if id not in ARTIFACT_STORE:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
+        artifact = ARTIFACT_STORE[id]
 
     # aws implementation
-    artifact = await db_service.get_artifact(id)
-    if not artifact:
-        raise HTTPException(status_code=404, detail="Artifact does not exist")
-    
+    if (USE_AWS):
+        artifact = await db_service.get_artifact(id)
+        if not artifact:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
+        
     if artifact['type'] != artifact_type.value:
         raise HTTPException(status_code=400, detail="Artifact type mismatch")
     
-    # aws implementation
-    await db_service.delete_artifact(id)
-
     # local implementation
-    # del ARTIFACT_STORE[id]
+    if (USE_LOCAL):
+        del ARTIFACT_STORE[id]
+
+    # aws implementation
+    if (USE_AWS):
+        await db_service.delete_artifact(id)
     
     return {"message": "Artifact is deleted"}
 
-
+# THIS IS ENUMERATE, WILL HAVE TO FIX
 # @router.post(
 #     "/artifacts",
 #     response_model=List[ArtifactMetadata],
@@ -426,15 +443,16 @@ async def rate_model(
     """Get ratings for this model artifact."""
 
     # local implementation
-    # if id not in ARTIFACT_STORE:
-    #     raise HTTPException(status_code=404, detail="Artifact does not exist")
-    
-    # artifact = ARTIFACT_STORE[id]
+    if (USE_LOCAL):
+        if id not in ARTIFACT_STORE:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
+        artifact = ARTIFACT_STORE[id]
 
     # aws implementation
-    artifact = await db_service.get_artifact(id)
-    if not artifact:
-        raise HTTPException(status_code=404, detail="Artifact does not exist")
+    if (USE_AWS):
+        artifact = await db_service.get_artifact(id)
+        if not artifact:
+            raise HTTPException(status_code=404, detail="Artifact does not exist")
     
     if artifact['type'] != 'model':
         raise HTTPException(
@@ -461,29 +479,119 @@ async def health_check():
     """Heartbeat check (BASELINE)."""
     return {"status": "ok"}
 
+@router.get("/tracks")
+async def get_tracks():
+    """Get the list of tracks planned for implementation."""
+    return {
+        "plannedTracks": [
+            "Performance track"
+        ]
+    }
+
+# @router.delete("/reset")
+# async def reset_registry(x_authorization: Optional[str] = Header(None)):
+#     """Reset the registry (BASELINE)."""
+
+#     # local implementation
+#     # global ARTIFACT_STORE
+#     # ARTIFACT_STORE.clear()
+#     # return {"message": "Registry is reset"}
+
+#     # aws implementation
+#     try:
+#             # Assuming db_service is an instance of a DynamoDB service class
+#             # with a method to delete all items in the table.
+#             # YOU MUST IMPLEMENT db_service.delete_all_artifacts()
+#             await db_service.clear_all_artifacts() 
+
+#             return {"message": "Registry is reset"}
+        
+#     except Exception as e:
+#         # Log the error (optional)
+#         print(f"Error resetting registry in DynamoDB: {e}")
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"Failed to reset registry: {str(e)}"
+#         )
 
 @router.delete("/reset")
 async def reset_registry(x_authorization: Optional[str] = Header(None)):
-    """Reset the registry (BASELINE)."""
-
-    # local implementation
-    # global ARTIFACT_STORE
-    # ARTIFACT_STORE.clear()
-    # return {"message": "Registry is reset"}
-
-    # aws implementation
     try:
-            # Assuming db_service is an instance of a DynamoDB service class
-            # with a method to delete all items in the table.
-            # YOU MUST IMPLEMENT db_service.delete_all_artifacts()
-            await db_service.clear_all_artifacts() 
+        deleted_count = 0
 
-            return {"message": "Registry is reset"}
-        
+        # local implementation
+        if (USE_LOCAL):
+            global ARTIFACT_STORE
+            deleted_count += len(ARTIFACT_STORE)
+            ARTIFACT_STORE.clear()
+
+        # aws implementation
+        if (USE_AWS):
+            deleted_count += await db_service.clear_all_artifacts()
+            await asyncio.sleep(0.5)
+
+            items, _ = await db_service.list_artifacts(
+                name_filter="*",
+                limit=1
+            )
+
+            if items:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Reset incomplete: {len(items)} artifacts still present"
+                )
+
+        print(f"Reset successful: deleted {deleted_count} artifacts")
+        print("=" * 50)
+
+        return {
+            "message": "Registry is reset",
+            "deleted_items": deleted_count
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
-        # Log the error (optional)
-        print(f"Error resetting registry in DynamoDB: {e}")
+        print(f"Error resetting registry: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Failed to reset registry: {str(e)}"
         )
+    
+# temp debug endpoint
+@router.get("/debug/count")
+async def debug_count_artifacts():
+    try:
+        all_items = []
+
+        # local implementation
+        if USE_LOCAL:
+            for item in ARTIFACT_STORE.values():
+                all_items.append({
+                    "id": item["id"],
+                    "name": item["name"],
+                    "type": item["type"]
+                })
+
+        # aws implementation
+        if USE_AWS:
+            items, _ = await db_service.list_artifacts(
+                name_filter="*",
+                limit=1000
+            )
+            for item in items:
+                all_items.append({
+                    "id": item["id"],
+                    "name": item["name"],
+                    "type": item["type"]
+                })
+
+        return {
+            "count": len(all_items),
+            "artifacts": all_items[:10]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

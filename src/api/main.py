@@ -12,7 +12,7 @@ app = FastAPI(
     description="Baseline API implementation for the Trustworthy Model Registry.",
     version="3.4.2",
     contact={
-        "name": "Your Team Name",
+        "Group": "Group 24",
     },
 )
 
