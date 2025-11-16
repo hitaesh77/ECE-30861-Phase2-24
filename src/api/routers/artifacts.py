@@ -30,8 +30,8 @@ router = APIRouter(tags=["Artifacts"])
 # In-memory storage for development (replace with DynamoDB later)
 ARTIFACT_STORE: Dict[str, Dict] = {}
 
-USE_LOCAL = True
-USE_AWS = False
+USE_LOCAL = False
+USE_AWS = True
 
 
 def generate_artifact_id() -> str:
