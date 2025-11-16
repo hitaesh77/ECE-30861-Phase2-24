@@ -31,6 +31,7 @@ async def compute(model_url: str, code_url: Optional[str], dataset_url: Optional
                     repo_parts = repo_parts[1:]
                 if repo_parts:
                     model_name = repo_parts[-1]
+                    #model_name = "/".join(repo_parts)
 
     latency_ms = (int)((time.time() - startTime) * 1000)
     return model_name, latency_ms
