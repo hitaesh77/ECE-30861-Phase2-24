@@ -17,7 +17,7 @@ from api.models.artifact import (
 )
 
 # Import your metrics computation
-from run2 import classify_url
+from src.run import classify_url
 from metrics import run_metrics
 from utils import UrlCategory
 
