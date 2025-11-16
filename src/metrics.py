@@ -1,4 +1,5 @@
 import asyncio
+import time
 from urllib.parse import urlparse
 import logging
 from typing import Dict, TypedDict, Literal
@@ -55,6 +56,7 @@ class GradeResult(TypedDict):
 # run tasks
 async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
 
+    start_time = time.time()
     model_url = urls.get(UrlCategory.MODEL)['url']
     dataset_url = urls.get(UrlCategory.DATASET) and urls.get(UrlCategory.DATASET)['url']
     code_url = urls.get(UrlCategory.CODE) and urls.get(UrlCategory.CODE)['url']
@@ -110,8 +112,10 @@ async def run_metrics(urls: Dict[UrlCategory, str]) -> GradeResult:
                 net_score_input[k] = v
 
         net, net_latency = net_score(net_score_input)
+        total_time_ms = int((time.time() - start_time) * 1000)
         metric_scores["net_score"] = net
-        metric_scores["net_score_latency"] = net_latency
+        #metric_scores["net_score_latency"] = net_latency
+        metric_scores["net_score_latency"] = total_time_ms
 
 
     final_ordered_scores: GradeResult = {}
