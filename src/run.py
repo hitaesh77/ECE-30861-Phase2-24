@@ -71,6 +71,50 @@ def read_enter_delimited_file(filename: str) -> list[str]:
         # Re-raise the error to be caught by the caller for proper exit
         raise
 
+# def urls_processor(urls_file: str) -> Dict:
+#     """Process a newline-delimited URL file."""
+
+#     # Note: run_metrics, GradeResult, UrlCategory, Provider are imported at the top now
+#     from metrics import run_metrics, GradeResult, UrlCategory, Provider
+
+#     p = Path(urls_file)
+#     if not p.exists():
+#         logger.error(f"Error: file not found: {p}")
+#         sys.exit(1)
+        
+#     lines = read_enter_delimited_file(urls_file)
+#     source = str(p)
+#     logger.info(f"Read {len(lines)} lines from {source}. (grading stub)")
+
+#     last_result = {}
+    
+#     for line in lines:
+#         url_dictionary = {}
+#         # Allows for multiple comma-separated URLs on one line, treating them all as part of one "repo group"
+#         for url in line.split(","):
+#             url = url.strip()
+#             if not url:
+#                 continue
+#             category, provider, ids = classify_url(url)
+#             # Store the info for this group
+#             url_dictionary[category] = ids
+        
+#         if not url_dictionary.get(UrlCategory.MODEL):
+#             logger.error("Error: No MODEL URL found in line, skipping.")
+#             continue
+            
+#         try:
+#             result = asyncio.run(run_metrics(url_dictionary))
+#             # Guaranteed NDJSON output: explicitly write to stdout with a newline
+#             # sys.stdout.write(json.dumps(result) + '\n') 
+#             sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n') 
+#             last_result = result
+
+#         except Exception as e:
+#             logger.error(f"Error running metrics for line '{line}': {e}", exc_info=True)
+
+#     return last_result
+
 def urls_processor(urls_file: str) -> Dict:
     """Process a newline-delimited URL file."""
 
@@ -84,36 +128,60 @@ def urls_processor(urls_file: str) -> Dict:
         
     lines = read_enter_delimited_file(urls_file)
     source = str(p)
-    logger.info(f"Read {len(lines)} lines from {source}. (grading stub)")
+    logger.info(f"Read {len(lines)} lines from {source}.")
 
-    last_result = {}
+    all_results = []
     
-    for line in lines:
+    for line_num, line in enumerate(lines, 1):
         url_dictionary = {}
-        # Allows for multiple comma-separated URLs on one line, treating them all as part of one "repo group"
-        for url in line.split(","):
-            url = url.strip()
-            if not url:
-                continue
-            category, provider, ids = classify_url(url)
-            # Store the info for this group
-            url_dictionary[category] = ids
         
+        # Skip empty lines
+        if not line.strip():
+            continue
+        
+        # Split by comma and process each URL
+        url_parts = [u.strip() for u in line.split(",")]
+        
+        # Remove empty strings from the list
+        url_parts = [u for u in url_parts if u]
+        
+        if not url_parts:
+            logger.warning(f"Line {line_num} has no valid URLs, skipping.")
+            continue
+        
+        # Process each URL in the line
+        for url in url_parts:
+            try:
+                category, provider, ids = classify_url(url)
+                # Store the info for this group
+                url_dictionary[category] = ids
+            except Exception as e:
+                logger.error(f"Error classifying URL '{url}' on line {line_num}: {e}")
+                continue
+        
+        # Skip if no MODEL URL found
         if not url_dictionary.get(UrlCategory.MODEL):
-            logger.error("Error: No MODEL URL found in line, skipping.")
+            logger.error(f"Error: No MODEL URL found on line {line_num}, skipping.")
             continue
             
         try:
+            logger.info(f"Processing line {line_num}: {url_dictionary.get(UrlCategory.MODEL).get('url', 'N/A')}")
             result = asyncio.run(run_metrics(url_dictionary))
-            # Guaranteed NDJSON output: explicitly write to stdout with a newline
-            # sys.stdout.write(json.dumps(result) + '\n') 
-            sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n') 
-            last_result = result
+            
+            # Write result as NDJSON to stdout
+            sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n')
+            sys.stdout.flush()  # Ensure immediate output
+            
+            all_results.append(result)
 
         except Exception as e:
-            logger.error(f"Error running metrics for line '{line}': {e}", exc_info=True)
+            logger.error(f"Error running metrics for line {line_num} '{line}': {e}", exc_info=True)
+            continue
 
-    return last_result
+    logger.info(f"Processed {len(all_results)} URLs successfully out of {len(lines)} total lines.")
+    
+    # Return the last result for compatibility (or return all_results if you need all)
+    return all_results[-1] if all_results else {}
 
 def run_test(min_coverage: int = 80) -> bool:
     import coverage
