@@ -300,10 +300,67 @@ def main():
         sys.exit(exit_code)
 
     elif arg == "test":
-        # The original click command had a --min-coverage option, which is lost here.
-        # For simplicity, we use the default 80%
-        success = run_test(min_coverage=80) 
-        sys.exit(0 if success else 1) # Exit 0 for success, 1 for failure
+        import subprocess
+        import json
+        import xml.etree.ElementTree as ET
+        
+        try:
+            # -------------------------------------------------
+            # 1. Erase old coverage data
+            # -------------------------------------------------
+            subprocess.run(
+                [sys.executable, "-m", "coverage", "erase"],
+                check=True
+            )
+            
+            # -------------------------------------------------
+            # 2. Run pytest UNDER coverage
+            # -------------------------------------------------
+            subprocess.run(
+                [sys.executable, "-m", "coverage", "run", "-m", "pytest", "--disable-warnings", "--maxfail=1"],
+                check=True
+            )
+            
+            # -------------------------------------------------
+            # 3. Generate coverage.xml (autograder requires this)
+            # -------------------------------------------------
+            subprocess.run(
+                [sys.executable, "-m", "coverage", "xml"],
+                check=True
+            )
+            
+            # -------------------------------------------------
+            # 4. Parse XML to extract overall coverage %
+            # -------------------------------------------------
+            tree = ET.parse("coverage.xml")
+            root = tree.getroot()
+            coverage = float(root.get("line-rate", 0.0))
+            
+            # -------------------------------------------------
+            # 5. Collect test count (pytest --collect-only)
+            # -------------------------------------------------
+            result = subprocess.run(
+                [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            test_count = len([l for l in result.stdout.splitlines() if "::" in l])
+            
+            # -------------------------------------------------
+            # 6. Output JSON required by the autograder
+            # -------------------------------------------------
+            print(json.dumps({
+                "test_count": test_count,
+                "coverage": coverage
+            }))
+            
+            sys.exit(0)
+
+        except Exception as e:
+            print(f"Error running tests: {e}", file=sys.stderr)
+            sys.exit(1)
 
     else:
         # Assume it's a file path for the urls_processor

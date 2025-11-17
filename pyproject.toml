@@ -64,7 +64,7 @@ py-modules = ["run", "modules"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-q --maxfail=1 --disable-warnings --cov=. --cov-report=term"
+addopts = "-q --maxfail=1 --disable-warnings"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
