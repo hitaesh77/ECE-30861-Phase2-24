@@ -4,6 +4,9 @@ import types
 import re
 from pathlib import Path
 import pytest
+import tempfile
+import shutil
+import time
 
 import performance_claims as pc  # adjust if your path differs
 
@@ -32,25 +35,27 @@ def patch_tmpdir(monkeypatch, tmp_path):
     fixed = tmp_path / "perf_claims_tmp"
     fixed.mkdir(parents=True, exist_ok=True)
 
-    # mkdtemp -> our fixed path
-    monkeypatch.setattr(pc.tempfile, "mkdtemp", lambda prefix="perf_claims_": str(fixed))
+    # Patch standard library directly
+    monkeypatch.setattr(tempfile, "mkdtemp", lambda prefix="perf_claims_": str(fixed))
 
     calls = {"args": None, "kwargs": None}
     def fake_rmtree(path, ignore_errors=False):
         calls["args"] = (path,)
         calls["kwargs"] = {"ignore_errors": ignore_errors}
-    monkeypatch.setattr(pc.shutil, "rmtree", fake_rmtree)
+    monkeypatch.setattr(shutil, "rmtree", fake_rmtree)
 
     return fixed, calls
 
 @pytest.fixture
 def fixed_time(monkeypatch):
-    # Keep perf_counter monotonic but deterministic
+    """
+    Keep perf_counter monotonic but deterministic
+    """
     t = {"p": 1000.0}
     def perf():
         t["p"] += 0.001
         return t["p"]
-    monkeypatch.setattr(pc.time, "perf_counter", perf)
+    monkeypatch.setattr(time, "perf_counter", perf)
     return t
 
 # --------------------------- tests ------------------------------------
@@ -67,7 +72,6 @@ async def test_early_return_no_valid_code_url(fixed_time):
 async def test_happy_path_some_keywords(monkeypatch, patch_tmpdir, fixed_time):
     tmp_root, rm_calls = patch_tmpdir
 
-    # We'll capture exactly what we write, to replicate the metric's regex computation.
     readme_text = (
         "# Project\n"
         "This achieves state-of-the-art accuracy on GLUE.\n"
@@ -85,11 +89,10 @@ async def test_happy_path_some_keywords(monkeypatch, patch_tmpdir, fixed_time):
 
     install_git_stub(clone_impl)
 
-    # Run metric
     score, ms = await pc.compute("hf://org/model", code_url="https://github.com/org/repo", dataset_url=None)
     assert isinstance(ms, int) and ms >= 0
 
-    # Compute expected using the SAME regex logic as the implementation on the SAME text
+    # Compute expected score
     text = readme_text + "\n" + notes_text
     matches = sum(
         1
@@ -109,15 +112,12 @@ async def test_case_insensitive_and_hyphen_handling(monkeypatch, patch_tmpdir, f
 
     def clone_impl(url, path: Path, depth):
         path.mkdir(parents=True, exist_ok=True)
-        # Uppercase "SOTA" and hyphenated "mt-bench"
         (path / "readme.md").write_text("SOTA results on MT-BENCH.\n", encoding="utf-8")
         return object()
 
     install_git_stub(clone_impl)
 
     score, _ = await pc.compute("hf://org/model", code_url="https://github.com/org/repo", dataset_url=None)
-
-    # At least 'sota' and 'mt-bench' should match
     min_hits = 2 / len(pc.BENCHMARK_KEYWORDS)
     assert score >= round(min_hits, 2)
 

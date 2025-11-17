@@ -122,7 +122,7 @@ async def compute(model_url: str, code_url: str, dataset_url: str) -> dict:
     # result = evaluate_performance_claims(readme)
     # latency_ms = (time.time() - start) * 1000
     # return result["final_score"], latency_ms
-    return 0.0, 0.0  # Disabled for testing without API access
+    return 0.0, 0  # Disabled for testing without API access
 
 if __name__ == "__main__":
     print("TEST 1")

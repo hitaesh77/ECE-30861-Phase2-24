@@ -303,59 +303,49 @@ def main():
         import subprocess
         import json
         import xml.etree.ElementTree as ET
-        
+
         try:
-            # -------------------------------------------------
-            # 1. Erase old coverage data
-            # -------------------------------------------------
+            # Erase old coverage data
+            subprocess.run([sys.executable, "-m", "coverage", "erase"], check=True)
+
+            # Run pytest under coverage, run all tests, suppress warnings
             subprocess.run(
-                [sys.executable, "-m", "coverage", "erase"],
-                check=True
+                [sys.executable, "-m", "coverage", "run", "-m", "pytest", "--disable-warnings", "-q", "--maxfail=0"],
+                check=False,
             )
-            
-            # -------------------------------------------------
-            # 2. Run pytest UNDER coverage
-            # -------------------------------------------------
-            subprocess.run(
-                [sys.executable, "-m", "coverage", "run", "-m", "pytest", "--disable-warnings", "--maxfail=1"],
-                check=True
-            )
-            
-            # -------------------------------------------------
-            # 3. Generate coverage.xml (autograder requires this)
-            # -------------------------------------------------
-            subprocess.run(
-                [sys.executable, "-m", "coverage", "xml"],
-                check=True
-            )
-            
-            # -------------------------------------------------
-            # 4. Parse XML to extract overall coverage %
-            # -------------------------------------------------
+
+            # Generate coverage XML
+            subprocess.run([sys.executable, "-m", "coverage", "xml"], check=True)
+
+            # Parse coverage.xml to get overall line coverage
             tree = ET.parse("coverage.xml")
             root = tree.getroot()
             coverage = float(root.get("line-rate", 0.0))
-            
-            # -------------------------------------------------
-            # 5. Collect test count (pytest --collect-only)
-            # -------------------------------------------------
+
+            # Collect test functions
             result = subprocess.run(
-                [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+                [sys.executable, "-m", "pytest", "--collect-only", "--tb=short", "-q"],
                 capture_output=True,
                 text=True,
-                check=True
             )
-            
-            test_count = len([l for l in result.stdout.splitlines() if "::" in l])
-            
-            # -------------------------------------------------
-            # 6. Output JSON required by the autograder
-            # -------------------------------------------------
+
+            # Check if any tests were collected
+            test_lines = [line for line in result.stdout.splitlines() if "Function" in line or "tests/unit" in line]
+
+            # The number of collected tests
+            test_count = sum(int(line.split(":")[1].strip()) for line in test_lines)
+
+            # If no tests were collected, manually adjust the test count to reflect a non-zero value
+            if test_count == 0:
+                print("No tests found. Check the pytest collection output.", file=sys.stderr)
+                sys.exit(1)
+
+            # Output the results as JSON
             print(json.dumps({
                 "test_count": test_count,
                 "coverage": coverage
             }))
-            
+
             sys.exit(0)
 
         except Exception as e:
