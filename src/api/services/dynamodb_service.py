@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from botocore.exceptions import ClientError
 import json
+import asyncio
 
 from api.aws_config import aws_config
 from api.models.artifact import ArtifactType
@@ -198,34 +199,113 @@ class DynamoDBService:
     #                 await batch.delete_item(Key={'id': item['id']})
     
     async def clear_all_artifacts(self):
-        """Clear all artifacts (for reset endpoint) - Correctly handles pagination."""
+        """Clear all artifacts with verification and retry logic."""
         async with aws_config.get_dynamodb_resource() as dynamodb:
             table = await dynamodb.Table(self.table_name)
             
-            # Use ProjectionExpression to only retrieve the primary key ('id') for efficiency
-            scan_kwargs = {
-                'ProjectionExpression': '#id', 
-                'ExpressionAttributeNames': {'#id': 'id'}
-            }
+            max_retries = 3
+            for attempt in range(max_retries):
+                deleted_count = 0
+                scan_kwargs = {
+                    'ProjectionExpression': '#id', 
+                    'ExpressionAttributeNames': {'#id': 'id'}
+                }
+                
+                # Phase 1: Scan and collect all IDs
+                all_ids = []
+                while True:
+                    try:
+                        response = await table.scan(**scan_kwargs)
+                        items = response.get('Items', [])
+                        
+                        for item in items:
+                            all_ids.append(item['id'])
+                        
+                        last_key = response.get('LastEvaluatedKey')
+                        if not last_key:
+                            break
+                        
+                        scan_kwargs['ExclusiveStartKey'] = last_key
+                        
+                    except Exception as e:
+                        print(f"Error scanning table: {e}")
+                        raise
+                
+                print(f"Attempt {attempt + 1}: Found {len(all_ids)} artifacts to delete")
+                
+                if not all_ids:
+                    print("No artifacts found - table is clear")
+                    return 0
+                
+                # Phase 2: Delete all items in batches
+                batch_size = 25  # DynamoDB batch write limit
+                for i in range(0, len(all_ids), batch_size):
+                    batch = all_ids[i:i + batch_size]
+                    
+                    try:
+                        async with table.batch_writer() as writer:
+                            for artifact_id in batch:
+                                await writer.delete_item(Key={'id': artifact_id})
+                                deleted_count += 1
+                    except Exception as e:
+                        print(f"Error deleting batch: {e}")
+                        raise
+                
+                print(f"Deleted {deleted_count} items in attempt {attempt + 1}")
+                
+                # Phase 3: Verify deletion with eventual consistency delay
+                await asyncio.sleep(1.0)  # Wait for DynamoDB consistency
+                
+                # Check if any items remain
+                verify_response = await table.scan(
+                    ProjectionExpression='#id',
+                    ExpressionAttributeNames={'#id': 'id'},
+                    Limit=1
+                )
+                
+                remaining = len(verify_response.get('Items', []))
+                print(f"Verification: {remaining} items remaining")
+                
+                if remaining == 0:
+                    print(f"✓ Successfully cleared all artifacts (deleted {deleted_count} total)")
+                    return deleted_count
+                
+                # If items remain, retry
+                print(f"⚠ Items still present after attempt {attempt + 1}, retrying...")
             
-            # Scan and delete all items with pagination
-            while True:
-                response = await table.scan(**scan_kwargs)
-                items = response.get('Items', [])
+            # If we get here, deletion failed after all retries
+            raise Exception(f"Failed to clear all artifacts after {max_retries} attempts")
+    
+    # async def clear_all_artifacts(self):
+    #     """Clear all artifacts (for reset endpoint) - Correctly handles pagination."""
+    #     async with aws_config.get_dynamodb_resource() as dynamodb:
+    #         table = await dynamodb.Table(self.table_name)
+            
+    #         # Use ProjectionExpression to only retrieve the primary key ('id') for efficiency
+    #         scan_kwargs = {
+    #             'ProjectionExpression': '#id', 
+    #             'ExpressionAttributeNames': {'#id': 'id'}
+    #         }
+            
+    #         # Scan and delete all items with pagination
+    #         while True:
+    #             response = await table.scan(**scan_kwargs)
+    #             items = response.get('Items', [])
                 
-                # Use batch_writer for efficient mass deletion
-                async with table.batch_writer() as batch:
-                    for item in items:
-                        # Assuming 'id' is the primary key
-                        await batch.delete_item(Key={'id': item['id']})
+    #             # Use batch_writer for efficient mass deletion
+    #             async with table.batch_writer() as batch:
+    #                 for item in items:
+    #                     # Assuming 'id' is the primary key
+    #                     await batch.delete_item(Key={'id': item['id']})
                 
-                # Check for pagination (LastEvaluatedKey)
-                last_key = response.get('LastEvaluatedKey')
-                if not last_key:
-                    break  # No more pages
+    #             # Check for pagination (LastEvaluatedKey)
+    #             last_key = response.get('LastEvaluatedKey')
+    #             if not last_key:
+    #                 break  # No more pages
                 
-                # Update scan_kwargs for the next page
-                scan_kwargs['ExclusiveStartKey'] = last_key
+    #             # Update scan_kwargs for the next page
+    #             scan_kwargs['ExclusiveStartKey'] = last_key
 
 # Global instance
 db_service = DynamoDBService()
+
