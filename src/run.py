@@ -310,7 +310,7 @@ def main():
 
             # Run pytest under coverage, run all tests, suppress warnings
             subprocess.run(
-                [sys.executable, "-m", "coverage", "run", "-m", "pytest", "--disable-warnings", "-q", "--maxfail=0"],
+                [sys.executable, "-m", "coverage", "run", "-m", "pytest", "--disable-warnings", "-q", "--maxfail=0", "--tb=no"],
                 check=False,
             )
 
@@ -324,7 +324,7 @@ def main():
 
             # Collect test functions
             result = subprocess.run(
-                [sys.executable, "-m", "pytest", "--collect-only", "--tb=short", "-q"],
+                [sys.executable, "-m", "pytest", "--collect-only", "--tb=no", "-q"],
                 capture_output=True,
                 text=True,
             )
