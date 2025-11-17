@@ -5,7 +5,7 @@ import tempfile
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, status, HTTPException, Header, Query, Response
@@ -33,7 +33,7 @@ ARTIFACT_STORE: Dict[str, Dict] = {}
 USE_LOCAL = False
 USE_AWS = True
 
-
+# HELPERS
 def generate_artifact_id() -> str:
     """Generate a unique artifact ID matching the spec format."""
     return str(uuid.uuid4().int)[:13]
@@ -130,6 +130,18 @@ def check_metrics_threshold(rating: ModelRating) -> bool:
     
     return True
 
+def parse_offset(offset: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not offset:
+        return None
+    try:
+        return json.loads(offset)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid offset")
+
+def encode_offset(key: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not key:
+        return None
+    return json.dumps(key)
 
 # ============================================================================
 # BASELINE ENDPOINTS
@@ -341,94 +353,76 @@ async def delete_artifact(
     return {"message": "Artifact is deleted"}
 
 # THIS IS ENUMERATE, WILL HAVE TO FIX
-# @router.post(
-#     "/artifacts",
-#     response_model=List[ArtifactMetadata],
-#     summary="List artifacts (BASELINE - Enumerate)"
-# )
-# async def list_artifacts(
-#     queries: List[ArtifactQuery],
-#     response: Response,
-#     offset: Optional[str] = Query(None),
-#     x_authorization: Optional[str] = Header(None)
-# ):
-#     """
-#     Get artifacts matching queries.
-    
-#     If query name is "*", return all artifacts.
-#     Otherwise, search by name and optionally filter by types.
-    
-#     Response is paginated with offset in header.
-#     """
-#     if not queries:
-#         raise HTTPException(
-#             status_code=400,
-#             detail="At least one query required"
-#         )
-    
-#     # Handle wildcard query (enumerate all)
-#     if len(queries) == 1 and queries[0].name == "*":
-#         # Get all artifacts
-#         all_artifacts = list(ARTIFACT_STORE.values())
-        
-#         # Apply pagination
-#         start_idx = int(offset) if offset else 0
-#         page_size = 10
-        
-#         paginated = all_artifacts[start_idx:start_idx + page_size]
-#         next_offset = start_idx + page_size if start_idx + page_size < len(all_artifacts) else None
-        
-#         # Set offset header
-#         if next_offset is not None:
-#             response.headers["offset"] = str(next_offset)
-        
-#         # Convert to metadata format
-#         return [
-#             ArtifactMetadata(
-#                 name=item['name'],
-#                 id=item['id'],
-#                 type=ArtifactType(item['type'])
-#             )
-#             for item in paginated
-#         ]
-    
-#     # Handle specific name queries
-#     results = []
-#     seen_ids = set()
-    
-#     for query in queries:
-#         for artifact_id, artifact in ARTIFACT_STORE.items():
-#             # Skip if already included
-#             if artifact_id in seen_ids:
-#                 continue
-            
-#             # Check name match
-#             if artifact['name'] == query.name:
-#                 # Check type filter if specified
-#                 if query.types:
-#                     type_values = [t.value for t in query.types]
-#                     if artifact['type'] not in type_values:
-#                         continue
-                
-#                 results.append(artifact)
-#                 seen_ids.add(artifact_id)
-    
-#     # Check for too many results
-#     if len(results) > 100:
-#         raise HTTPException(
-#             status_code=413,
-#             detail="Too many artifacts returned"
-#         )
-    
-#     # Convert to metadata format
-#     return [
-#         ArtifactMetadata(
-#             name=item['name'],
-#             id=item['id'],
-#             type=ArtifactType(item['type'])
-#         )
-#         for item in results
-#     ]
+@router.post("/artifacts")
+async def list_artifacts_endpoint(
+    queries: List[ArtifactQuery],
+    offset: Optional[str] = Query(None)
+):
+    """List artifacts matching the provided queries (local or AWS)."""
+
+    if not queries or not isinstance(queries, list):
+        raise HTTPException(status_code=400, detail="Invalid request body")
+
+    q = queries[0]
+
+    name_filter = q.name if q.name else None
+    type_filter = q.types if q.types else None
+
+    # Handle pagination offset for AWS
+    last_key = None
+    if offset:
+        try:
+            last_key = json.loads(offset)
+        except:
+            raise HTTPException(status_code=400, detail="Invalid offset token")
+
+    # Local implementation
+    if not USE_AWS:
+        results = []
+
+        for artifact_id, artifact in ARTIFACT_STORE.items():
+
+            if name_filter and name_filter != "*" and artifact["name"] != name_filter:
+                continue
+
+            if type_filter and artifact["type"] not in type_filter:
+                continue
+
+            results.append({
+                "id": artifact_id,
+                "name": artifact["name"],
+                "type": artifact["type"]
+            })
+
+        if len(results) > 1000:
+            raise HTTPException(status_code=413, detail="Too many artifacts returned")
+
+        return Response(
+            content=json.dumps(results),
+            media_type="application/json"
+        )
+
+    # AWS implementation
+    items, next_key = await db_service.list_artifacts(
+        name_filter=name_filter,
+        type_filter=type_filter,
+        limit=50,
+        last_key=last_key
+    )
+
+    if len(items) > 1000:
+        raise HTTPException(status_code=413, detail="Too many artifacts returned")
+
+    response = Response(
+        content=json.dumps(items),
+        media_type="application/json"
+    )
+
+    if next_key:
+        response.headers["offset"] = json.dumps(next_key)
+
+    return response
+
 
 
 @router.get(
