@@ -329,13 +329,12 @@ def main():
                 text=True,
             )
 
-            # Check if any tests were collected
-            test_lines = [line for line in result.stdout.splitlines() if "Function" in line or "tests/unit" in line]
+            test_count = 0
+            for line in result.stdout.splitlines():
+                if not line.strip():
+                    continue
+                test_count += int(line.split(":")[1].strip())
 
-            # The number of collected tests
-            test_count = sum(int(line.split(":")[1].strip()) for line in test_lines)
-
-            # If no tests were collected, manually adjust the test count to reflect a non-zero value
             if test_count == 0:
                 print("No tests found. Check the pytest collection output.", file=sys.stderr)
                 sys.exit(1)
