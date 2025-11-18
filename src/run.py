@@ -42,7 +42,7 @@ def setup_logger():
 
 # --- Domain: URL Classification ---
 
-logger = setup_logger()
+# logger = setup_logger()
 
 # --- Ingest: URL parsing & classification ---
 def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
@@ -293,6 +293,14 @@ def incorrect():
     sys.exit(1)
 
 def main():
+
+    token = os.getenv("GITHUB_TOKEN")
+    if not token or not token.strip() or token == None:
+        print("Error: Invalid or missing GITHUB_TOKEN")
+        sys.exit(1)
+
+    logger = setup_logger()
+
     """Handles command-line arguments (install, test, or urls_file)."""
 
     if len(sys.argv) < 2:
@@ -369,10 +377,6 @@ def main():
             sys.exit(1)
 
     else:
-        token = os.getenv("GITHUB_TOKEN")
-        if not token or not token.strip() or token == None:
-            print("Error: Invalid or missing GITHUB_TOKEN")
-            sys.exit(1)
 
         # Assume it's a file path for the urls_processor
         urls_file = arg
