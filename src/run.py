@@ -23,12 +23,17 @@ def setup_logger():
     else:
         level = logging.INFO
 
-    logging.basicConfig(
-        filename=log_file,
-        filemode="w",  # overwrite for each run
-        level=level,
-        format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    try:
+        logging.basicConfig(
+            filename=log_file,
+            filemode="w",  # overwrite for each run
+            level=level,
+            format="%(asctime)s - %(levelname)s - %(message)s"
+        )
+    except Exception:
+        print(f"Error: Invalid log file path '{log_file}'")
+        # Disable logging entirely so the rest still runs
+        logging.disable(logging.CRITICAL)
 
     return logging.getLogger("testbench")
 
@@ -361,6 +366,11 @@ def main():
             sys.exit(1)
 
     else:
+        token = os.getenv("GITHUB_TOKEN")
+        if not token or not token.strip():
+            print("Error: Invalid or missing GITHUB_TOKEN")
+            sys.exit(1)
+            
         # Assume it's a file path for the urls_processor
         urls_file = arg
         logger.info(f"Processing URLs from file: {urls_file}")
