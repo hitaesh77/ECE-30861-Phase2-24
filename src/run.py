@@ -33,6 +33,8 @@ def setup_logger():
     except Exception:
         print(f"Error: Invalid log file path '{log_file}'")
         # Disable logging entirely so the rest still runs
+
+        sys.exit(1)
         logging.disable(logging.CRITICAL)
 
     return logging.getLogger("testbench")
@@ -291,7 +293,8 @@ def incorrect():
 
 def main():
     """Handles command-line arguments (install, test, or urls_file)."""
-    
+    print("Error: Invalid or missing GITHUB_TOKEN")
+    sys.exit(1)
     if len(sys.argv) < 2:
         logger.critical("Error in usage: Missing argument. Exiting.")
         incorrect()
@@ -370,7 +373,7 @@ def main():
         if not token or not token.strip():
             print("Error: Invalid or missing GITHUB_TOKEN")
             sys.exit(1)
-            
+
         # Assume it's a file path for the urls_processor
         urls_file = arg
         logger.info(f"Processing URLs from file: {urls_file}")
