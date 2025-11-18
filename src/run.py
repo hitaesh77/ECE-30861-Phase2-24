@@ -294,12 +294,12 @@ def incorrect():
 
 def main():
 
+    logger = setup_logger()
+    
     token = os.getenv("GITHUB_TOKEN")
     if not token or not token.strip() or token == None:
         print("Error: Invalid or missing GITHUB_TOKEN")
         sys.exit(1)
-
-    logger = setup_logger()
 
     """Handles command-line arguments (install, test, or urls_file)."""
 
