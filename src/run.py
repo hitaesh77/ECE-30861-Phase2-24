@@ -309,10 +309,12 @@ def main():
             subprocess.run([sys.executable, "-m", "coverage", "erase"], check=True)
 
             # Run pytest under coverage, run all tests, suppress warnings
-            subprocess.run(
+            output = subprocess.run(
                 [sys.executable, "-m", "coverage", "run", "-m", "pytest", "--disable-warnings", "-q", "--maxfail=0", "--tb=no"],
                 check=False,
+                capture_output=True,
             )
+            output = output.stdout.decode("utf-8")
 
             # Generate coverage XML
             subprocess.run([sys.executable, "-m", "coverage", "xml"], check=True)
@@ -320,7 +322,7 @@ def main():
             # Parse coverage.xml to get overall line coverage
             tree = ET.parse("coverage.xml")
             root = tree.getroot()
-            coverage = float(root.get("line-rate", 0.0))
+            coverage = round(float(root.get("line-rate", 0.0)) * 100, 2)
 
             # Collect test functions
             result = subprocess.run(
@@ -334,6 +336,7 @@ def main():
                 if not line.strip():
                     continue
                 test_count += int(line.split(":")[1].strip())
+            passed_count = test_count - output.count("FAILED")
 
             if test_count == 0:
                 print("No tests found. Check the pytest collection output.", file=sys.stderr)
@@ -344,6 +347,12 @@ def main():
                 "test_count": test_count,
                 "coverage": coverage
             }))
+            json.dumps({
+                "test_count": test_count,
+                "coverage": coverage
+            })
+
+            print(f"{passed_count}/{test_count} test cases passed. {coverage}% line coverage achieved.")
 
             sys.exit(0)
 
