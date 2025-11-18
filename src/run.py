@@ -11,8 +11,12 @@ from utils import UrlCategory, Provider
 
 
 def setup_logger():
-    log_file = os.getenv("LOG_FILE", "llm_logs.log")
+    log_file = os.getenv("LOG_FILE")#, "llm_logs.log")
     log_level = int(os.getenv("LOG_LEVEL", "1"))  # default to INFO
+
+    if log_file == None:
+        print(f"Error: Invalid log file path")
+        sys.exit(1)
 
     if log_level == 0:
         level = logging.disable(logging.CRITICAL + 1)  # silence
@@ -32,10 +36,7 @@ def setup_logger():
         )
     except Exception:
         print(f"Error: Invalid log file path '{log_file}'")
-        # Disable logging entirely so the rest still runs
-
         sys.exit(1)
-        logging.disable(logging.CRITICAL)
 
     return logging.getLogger("testbench")
 
@@ -293,8 +294,7 @@ def incorrect():
 
 def main():
     """Handles command-line arguments (install, test, or urls_file)."""
-    print("Error: Invalid or missing GITHUB_TOKEN")
-    sys.exit(1)
+
     if len(sys.argv) < 2:
         logger.critical("Error in usage: Missing argument. Exiting.")
         incorrect()
@@ -370,7 +370,7 @@ def main():
 
     else:
         token = os.getenv("GITHUB_TOKEN")
-        if not token or not token.strip():
+        if not token or not token.strip() or token == None:
             print("Error: Invalid or missing GITHUB_TOKEN")
             sys.exit(1)
 
