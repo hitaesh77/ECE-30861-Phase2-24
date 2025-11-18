@@ -43,6 +43,7 @@ def setup_logger():
 # --- Domain: URL Classification ---
 
 # logger = setup_logger()
+logger: logging.Logger = None
 
 # --- Ingest: URL parsing & classification ---
 def classify_url(raw: str) -> Tuple[UrlCategory, Provider, Dict[str, str]]:
@@ -294,6 +295,7 @@ def incorrect():
 
 def main():
 
+    global logger
     logger = setup_logger()
     
     token = os.getenv("GITHUB_TOKEN")
